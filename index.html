@@ -21,16 +21,22 @@
         
         <!-- Persistent UI Overlay -->
         <div id="lobby-overlay">
-            <div id="qr-code">
-                <!-- QR Code rendered here by script -->
-            </div>
+            <div id="qr-code"></div>
             <div class="room-code-display" id="room-code">----</div>
             <div class="player-count" id="player-count-display">0 Player(s) Connected</div>
         </div>
     </div>
 
-    <!-- Core Scripts -->
+    <!-- Core Engine Scripts -->
     <script src="js/core/network.js"></script>
+    <script src="js/core/players.js"></script>
+    <script src="js/core/engine.js"></script>
+    
+    <!-- Game Modules -->
+    <script src="js/games/base.js"></script>
+    <script src="js/games/menu.js"></script>
+    
+    <!-- Boot -->
     <script src="js/host.js"></script>
 </body>
 </html>
