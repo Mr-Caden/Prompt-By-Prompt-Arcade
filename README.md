@@ -23,7 +23,7 @@ https://youtube.com/@cadengamacheai?sub_confirmation=1
 
 ## Support the Developer
 If you find this project helpful or enjoy the dev logs, you can support the ongoing development of the Prompt By Prompt Arcade via Patreon:
-https://www.patreon.com/CadenGamache
+https://www.patreon.com/CadenGamache/Membership
 
 ## How It Works
 1. Host: Open the main arcade URL on a computer or TV.
