@@ -1,2 +1,30 @@
-# Prompt-By-Prompt-Arcade
-An open-source, mobile-controlled web arcade. Built using Vibe Coding with Gemini AI. Featuring P5.js visuals, Matter.js physics, and Peer.js mobile-to-screen controls. Dev logs available at: https://youtube.com/@cadengamacheai?si=OHztX4oet6vhzcvM
+# Prompt By Prompt Arcade
+
+Prompt By Prompt Arcade is an open-source web-based arcade built using "Vibe Coding" with Gemini AI. The project aims to create a shared-screen experience where a computer acts as the arcade cabinet (host) and users connect their smartphones as controllers.
+
+## Project Vision
+This arcade is built prompt-by-prompt. While AI is used for coding assistance, the project is entirely hard-coded. There is no AI logic within the games themselves. The goal is a clean, physics-based, and visually engaging experience.
+
+## Technical Stack
+- Visuals: P5.js
+- Physics: Matter.js
+- Networking: Peer.js (Mobile-to-Screen communication)
+- Languages: HTML5, CSS3, Vanilla JavaScript
+- Hosting: GitHub Pages
+
+## Project Constraints
+- No Emojis: All visuals and documentation must avoid the use of emojis.
+- Hard-Coded: Every game mechanic is explicitly defined in the source code.
+- Mobile Input: Every game must support a mobile-web controller interface.
+
+## Dev Logs
+The development journey of this arcade is documented on YouTube. You can follow the progress and learn about the vibe coding process here:
+https://youtube.com/@cadengamacheai?si=OHztX4oet6vhzcvM
+
+## How It Works
+1. Host: Open the main arcade URL on a computer or TV.
+2. Connect: Use a smartphone to connect via the generated Peer.js ID or QR code.
+3. Play: Control the on-screen action using the custom mobile interface.
+
+## License
+This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) license. You are free to share and adapt the code for personal and educational use, but you are strictly prohibited from selling this project or using it for commercial purposes.
