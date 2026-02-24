@@ -5,6 +5,9 @@ Prompt By Prompt Arcade is an open-source web-based arcade built using "Vibe Cod
 ## Project Vision
 This arcade is built prompt-by-prompt. While AI is used for coding assistance, the project is entirely hard-coded. There is no AI logic within the games themselves. The goal is a clean, physics-based, and visually engaging experience.
 
+## AI Methodology
+This project uses a specific set of system instructions to guide the AI development process. These rules ensure code consistency, professional documentation, and adherence to the project's visual constraints. You can view these instructions in [AI_INSTRUCTIONS.md](./AI_INSTRUCTIONS.md).
+
 ## Technical Stack
 - Visuals: P5.js
 - Physics: Matter.js
