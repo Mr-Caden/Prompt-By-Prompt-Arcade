@@ -11,6 +11,7 @@
     --accent-red: #EF767A;
     --accent-yellow: #F6C15B;
     --accent-green: #45CB85;
+    --accent-purple: #9D4EDD;
     --surface-color: #FFFFFF;
     
     --border-radius-lg: 16px;
@@ -30,7 +31,7 @@ body {
     color: var(--text-color);
     width: 100vw;
     height: 100vh;
-    overflow: hidden; /* Prevent scrolling for arcade feel */
+    overflow: hidden;
     display: flex;
     flex-direction: column;
 }
@@ -45,7 +46,6 @@ body {
     position: relative;
 }
 
-/* The p5.js canvas container */
 #game-canvas-container {
     flex-grow: 1;
     display: flex;
@@ -54,7 +54,13 @@ body {
     background-color: var(--bg-color);
 }
 
-/* The lobby overlay for joining */
+/* p5 canvas enforcement */
+#game-canvas-container canvas {
+    display: block;
+    box-shadow: var(--shadow-soft);
+    border-radius: var(--border-radius-sm);
+}
+
 #lobby-overlay {
     position: absolute;
     top: 24px;
@@ -111,14 +117,14 @@ body {
     justify-content: center;
 }
 
-.connect-panel {
+.panel {
     background-color: var(--surface-color);
     padding: 32px;
     border-radius: var(--border-radius-lg);
     box-shadow: var(--shadow-soft);
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 24px;
     width: 100%;
     max-width: 400px;
 }
@@ -132,6 +138,9 @@ body {
 .input-group label {
     font-weight: 600;
     font-size: 0.9rem;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
 .input-group input {
@@ -140,13 +149,38 @@ body {
     border-radius: var(--border-radius-sm);
     font-size: 1.2rem;
     font-weight: 600;
-    text-transform: uppercase;
     outline: none;
     transition: border-color 0.2s;
 }
 
 .input-group input:focus {
     border-color: var(--accent-blue);
+}
+
+/* Color Picker Swatches */
+.color-swatches {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.swatch {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 4px solid transparent;
+    transition: transform 0.2s, border-color 0.2s;
+}
+
+.swatch:active {
+    transform: scale(0.9);
+}
+
+.swatch.selected {
+    border-color: var(--text-color);
+    transform: scale(1.1);
 }
 
 .btn {
@@ -159,6 +193,7 @@ body {
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s, transform 0.1s;
+    text-align: center;
 }
 
 .btn:active {
@@ -170,19 +205,15 @@ body {
     cursor: not-allowed;
 }
 
-/* Dynamic controller interfaces will go here as we build games */
-#dynamic-ui {
-    display: none;
-    width: 100%;
-    height: 100%;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
+.btn-ready {
+    background-color: var(--accent-green);
 }
 
-.status-message {
-    font-size: 1.2rem;
-    font-weight: 600;
-    text-align: center;
-    color: var(--text-color);
+/* Dynamic Views */
+.view-hidden {
+    display: none !important;
+}
+
+.view-active {
+    display: flex;
 }
