@@ -1,22 +1,24 @@
 /**
  * Client Application Entry Point
- * Manages mobile controller state and dynamic UI rendering.
+ * Manages mobile controller state, dynamic UI rendering, and player customization.
  */
 
 const PREFIX = "PBP-";
 const network = new NetworkManager(false);
 
-// UI Elements
+// UI Containers
 const connectPanel = document.getElementById('connect-panel');
 const dynamicUi = document.getElementById('dynamic-ui');
-const roomInput = document.getElementById('room-input');
-const connectBtn = document.getElementById('connect-btn');
-const statusMsg = document.getElementById('status-message');
 
-/**
- * Attempts to connect to a specific room code.
- * @param {string} code 
- */
+// Lobby Specific Elements
+const lobbyView = document.getElementById('view-lobby');
+const nameInput = document.getElementById('player-name');
+const colorSwatches = document.querySelectorAll('.swatch');
+const readyBtn = document.getElementById('ready-btn');
+
+let selectedColor = "#4F86F7"; // Default
+let isReady = false;
+
 function joinRoom(code) {
     const cleanCode = code.trim().toUpperCase();
     if (cleanCode.length !== 4) {
@@ -24,61 +26,119 @@ function joinRoom(code) {
         return;
     }
 
+    const connectBtn = document.getElementById('connect-btn');
     connectBtn.disabled = true;
     connectBtn.innerText = "Connecting...";
     
-    // Network must be initialized before connecting
     network.initialize();
-    
-    // Wait for our peer to be ready before connecting to host
-    network.onReady = () => {
-        network.connectToHost(`${PREFIX}${cleanCode}`);
-    };
+    network.onReady = () => network.connectToHost(`${PREFIX}${cleanCode}`);
 }
 
-// Network Event Bindings
+// Send customization data to Host
+function sendPlayerUpdate() {
+    network.send({
+        type: 'sys_player_update',
+        payload: {
+            name: nameInput.value || "Player",
+            color: selectedColor,
+            isReady: isReady
+        }
+    });
+}
+
+// --- Setup Lobby UI Interactions ---
+
+colorSwatches.forEach(swatch => {
+    swatch.addEventListener('click', (e) => {
+        if (isReady) return; // Lock customization if ready
+        
+        colorSwatches.forEach(s => s.classList.remove('selected'));
+        e.target.classList.add('selected');
+        selectedColor = e.target.dataset.color;
+        sendPlayerUpdate();
+    });
+});
+
+nameInput.addEventListener('input', () => {
+    if (!isReady) sendPlayerUpdate();
+});
+
+readyBtn.addEventListener('click', () => {
+    isReady = !isReady;
+    
+    if (isReady) {
+        readyBtn.classList.add('btn-ready');
+        readyBtn.innerText = "WAITING FOR OTHERS...";
+        nameInput.disabled = true;
+    } else {
+        readyBtn.classList.remove('btn-ready');
+        readyBtn.innerText = "READY UP";
+        nameInput.disabled = false;
+    }
+    
+    sendPlayerUpdate();
+});
+
+
+// --- Network Event Bindings ---
+
 network.onConnect = (hostId) => {
-    connectPanel.style.display = 'none';
-    dynamicUi.style.display = 'flex';
-    statusMsg.innerText = "Waiting for game to start...";
-    console.log("[Client] Successfully connected to host.");
+    connectPanel.classList.add('view-hidden');
+    dynamicUi.classList.remove('view-hidden');
+    
+    // Set initial name based on random digits to be unique
+    nameInput.value = "Player " + Math.floor(1000 + Math.random() * 9000);
+    sendPlayerUpdate();
 };
 
 network.onDisconnect = () => {
-    dynamicUi.style.display = 'none';
-    connectPanel.style.display = 'flex';
+    dynamicUi.classList.add('view-hidden');
+    connectPanel.classList.remove('view-hidden');
+    
+    const connectBtn = document.getElementById('connect-btn');
     connectBtn.disabled = false;
     connectBtn.innerText = "Join Arcade";
+    
+    // Reset state
+    isReady = false;
+    readyBtn.classList.remove('btn-ready');
+    readyBtn.innerText = "READY UP";
+    nameInput.disabled = false;
+    
     alert("Disconnected from Host.");
 };
 
 network.onData = (hostId, data) => {
-    console.log("[Client] Data from host:", data);
-    
-    if (data.type === 'sys_welcome') {
-        // We received the welcome packet
-        statusMsg.innerText = "You are in!";
+    // Switch UI layouts based on Host commands
+    if (data.type === 'sys_ui') {
+        const layout = data.layout;
+        
+        // Hide all views first
+        lobbyView.classList.add('view-hidden');
+        
+        // Show requested view
+        if (layout === 'lobby') {
+            lobbyView.classList.remove('view-hidden');
+            lobbyView.classList.add('view-active');
+        } 
+        // Future: add 'gamepad', 'drawing_pad', etc.
     }
-    
-    // Future: Route this to UI Builder (e.g., render buttons, touchpads based on data.uiState)
 };
 
-// Bootup and Event Listeners
+// --- Bootup ---
 window.onload = () => {
-    // Check if URL contains room parameter (e.g., scanned via QR code)
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
     
+    const roomInput = document.getElementById('room-input');
+    const connectBtn = document.getElementById('connect-btn');
+
     if (roomParam) {
         roomInput.value = roomParam.toUpperCase();
         joinRoom(roomParam);
     }
 
-    connectBtn.addEventListener('click', () => {
-        joinRoom(roomInput.value);
-    });
-
-    // Handle enter key
+    connectBtn.addEventListener('click', () => joinRoom(roomInput.value));
     roomInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') joinRoom(roomInput.value);
     });
