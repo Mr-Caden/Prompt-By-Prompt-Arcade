@@ -19,7 +19,11 @@ This arcade is built prompt-by-prompt. While AI is used for coding assistance, t
 
 ## Dev Logs
 The development journey of this arcade is documented on YouTube. You can follow the progress and learn about the vibe coding process here:
-https://youtube.com/@cadengamacheai?si=OHztX4oet6vhzcvM
+https://youtube.com/@cadengamacheai?sub_confirmation=1
+
+## Support the Developer
+If you find this project helpful or enjoy the dev logs, you can support the ongoing development of the Prompt By Prompt Arcade via Patreon:
+https://www.patreon.com/CadenGamache
 
 ## How It Works
 1. Host: Open the main arcade URL on a computer or TV.
