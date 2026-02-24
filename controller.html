@@ -15,19 +15,45 @@
     <div id="controller-container">
         
         <!-- Initial Connection Screen -->
-        <div class="connect-panel" id="connect-panel">
-            <h2>Join Arcade</h2>
+        <div class="panel" id="connect-panel">
+            <h2 style="text-align: center; color: var(--text-color);">Join Arcade</h2>
             <div class="input-group">
                 <label for="room-input">Room Code</label>
-                <input type="text" id="room-input" placeholder="ABCD" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters">
+                <input type="text" id="room-input" placeholder="ABCD" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" style="text-transform: uppercase;">
             </div>
-            <button class="btn" id="connect-btn">Join Arcade</button>
+            <button class="btn" id="connect-btn">Join</button>
         </div>
 
-        <!-- Dynamic UI Canvas / Container -->
-        <div id="dynamic-ui">
-            <div class="status-message" id="status-message">Initializing...</div>
-            <!-- Future data-driven UI elements (buttons, pads) will be injected here -->
+        <!-- Dynamic UI Container -->
+        <div id="dynamic-ui" class="view-hidden" style="width: 100%; display: flex; justify-content: center;">
+            
+            <!-- Lobby / Character Customization View -->
+            <div class="panel view-hidden" id="view-lobby">
+                <h2 style="text-align: center; color: var(--text-color);">Customize</h2>
+                
+                <div class="input-group">
+                    <label for="player-name">Your Name</label>
+                    <input type="text" id="player-name" maxlength="12" autocomplete="off">
+                </div>
+
+                <div class="input-group">
+                    <label>Choose Color</label>
+                    <div class="color-swatches">
+                        <!-- Mini Motorways Palette Mapping -->
+                        <div class="swatch selected" data-color="#4F86F7" style="background-color: #4F86F7;"></div>
+                        <div class="swatch" data-color="#EF767A" style="background-color: #EF767A;"></div>
+                        <div class="swatch" data-color="#F6C15B" style="background-color: #F6C15B;"></div>
+                        <div class="swatch" data-color="#45CB85" style="background-color: #45CB85;"></div>
+                        <div class="swatch" data-color="#9D4EDD" style="background-color: #9D4EDD;"></div>
+                        <div class="swatch" data-color="#2D3142" style="background-color: #2D3142;"></div>
+                    </div>
+                </div>
+
+                <button class="btn" id="ready-btn" style="margin-top: 16px;">READY UP</button>
+            </div>
+
+            <!-- Future Views (Gamepad, etc.) will go here -->
+
         </div>
 
     </div>
