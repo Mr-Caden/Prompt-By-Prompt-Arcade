@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt By Prompt Arcade - Host</title>
+    
+    <link rel="stylesheet" href="css/main.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+</head>
+<body>
+
+    <div id="host-container">
+        <!-- p5.js will attach its canvas inside this container -->
+        <div id="game-canvas-container"></div>
+        
+        <!-- Persistent UI Overlay -->
+        <div id="lobby-overlay">
+            <div id="qr-code">
+                <!-- QR Code rendered here by script -->
+            </div>
+            <div class="room-code-display" id="room-code">----</div>
+            <div class="player-count" id="player-count-display">0 Player(s) Connected</div>
+        </div>
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="js/core/network.js"></script>
+    <script src="js/host.js"></script>
+</body>
+</html>

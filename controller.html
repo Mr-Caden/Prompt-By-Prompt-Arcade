@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Arcade Controller</title>
+    
+    <link rel="stylesheet" href="css/main.css">
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+</head>
+<body>
+
+    <div id="controller-container">
+        
+        <!-- Initial Connection Screen -->
+        <div class="connect-panel" id="connect-panel">
+            <h2>Join Arcade</h2>
+            <div class="input-group">
+                <label for="room-input">Room Code</label>
+                <input type="text" id="room-input" placeholder="ABCD" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters">
+            </div>
+            <button class="btn" id="connect-btn">Join Arcade</button>
+        </div>
+
+        <!-- Dynamic UI Canvas / Container -->
+        <div id="dynamic-ui">
+            <div class="status-message" id="status-message">Initializing...</div>
+            <!-- Future data-driven UI elements (buttons, pads) will be injected here -->
+        </div>
+
+    </div>
+
+    <!-- Core Scripts -->
+    <script src="js/core/network.js"></script>
+    <script src="js/client.js"></script>
+</body>
+</html>
