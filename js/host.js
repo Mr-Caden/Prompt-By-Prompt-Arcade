@@ -3,20 +3,17 @@
  * Manages the screen, game engine initialization, and incoming players.
  */
 
-const PREFIX = "PBP-"; // Prefix to ensure unique PeerJS IDs globally
+const PREFIX = "PBP-";
 
-// Application State
+// Core Systems
+const network = new NetworkManager(true);
+const players = new PlayerManager();
+let engine = null;
+
 const state = {
-    roomCode: "",
-    players: []
+    roomCode: ""
 };
 
-// Initialize Networking
-const network = new NetworkManager(true);
-
-/**
- * Generates a clean 4-character ID avoiding confusing characters like 0, O, 1, I.
- */
 function generateRoomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let code = '';
@@ -26,29 +23,24 @@ function generateRoomCode() {
     return code;
 }
 
-/**
- * Updates the UI player count
- */
 function updateLobbyUI() {
     const countDisplay = document.getElementById('player-count-display');
-    countDisplay.innerText = `${state.players.length} Player(s) Connected`;
+    const count = players.getAllPlayers().length;
+    countDisplay.innerText = `${count} Player(s) Connected`;
 }
 
-// Network Event Bindings
+// --- Network Events ---
+
 network.onReady = (id) => {
-    // ID includes prefix, let's show just the room code to users
     const displayCode = id.replace(PREFIX, "");
     document.getElementById('room-code').innerText = displayCode;
     
-    // Generate QR Code dynamically pointing to the controller page
-    // Note: window.location.origin works best when hosted on GitHub Pages
     let baseUri = window.location.href.replace("index.html", "");
     if (!baseUri.endsWith("/")) baseUri += "/";
     const controllerUrl = `${baseUri}controller.html?room=${displayCode}`;
     
-    // Render QR Code via QRCode.js
     const qrContainer = document.getElementById("qr-code");
-    qrContainer.innerHTML = ""; // Clear loader
+    qrContainer.innerHTML = "";
     new QRCode(qrContainer, {
         text: controllerUrl,
         width: 160,
@@ -62,28 +54,43 @@ network.onReady = (id) => {
 };
 
 network.onConnect = (clientId) => {
-    state.players.push(clientId);
+    players.addPlayer(clientId);
     updateLobbyUI();
     
-    // Acknowledge connection to the client
-    network.send({ type: 'sys_welcome', message: 'Connected to Prompt By Prompt Arcade!' }, clientId);
+    // Tell the new client to build the UI for whatever game is currently active
+    if (engine && engine.activeGame) {
+        const uiConfig = engine.activeGame.getMobileUI();
+        network.send({ type: 'sys_ui', layout: uiConfig.layout, config: uiConfig }, clientId);
+    }
 };
 
 network.onDisconnect = (clientId) => {
-    state.players = state.players.filter(id => id !== clientId);
+    players.removePlayer(clientId);
     updateLobbyUI();
 };
 
 network.onData = (clientId, data) => {
-    console.log(`[Host] Data from ${clientId}:`, data);
-    // Future: Route this to the Game Engine / Current Active Module
+    // Intercept system-level updates (like customization)
+    if (data.type === 'sys_player_update') {
+        players.updatePlayer(clientId, data.payload);
+        return; // Don't pass system packets to the game logic
+    }
+
+    // Pass gameplay data to the active module
+    if (engine) {
+        engine.handleInput(clientId, data);
+    }
 };
 
-// Bootup
+// --- Bootup ---
 window.onload = () => {
     state.roomCode = generateRoomCode();
-    // Initialize network requesting our specific prefixed ID
     network.initialize(`${PREFIX}${state.roomCode}`);
     
-    // Future: Initialize p5.js global instance here and load the Menu Module.
+    // Initialize Arcade Engine
+    engine = new ArcadeEngine('game-canvas-container', network, players);
+    engine.start();
+    
+    // Load the Main Menu as the first module
+    engine.loadGame(MainMenu);
 };
