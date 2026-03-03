@@ -1,5 +1,6 @@
 /**
  * Client Application Entry Point
+ * Manages mobile controller state and dynamic UI rendering.
  */
 
 const PREFIX = "PBP-";
@@ -38,7 +39,7 @@ function joinRoom(code) {
 function updateLocalStateAndSend() {
     const currentHue = parseInt(inputs.hue.value);
     
-    // Update CSS Variable for dynamic coloring
+    // Update CSS Variable for dynamic coloring on buttons
     document.documentElement.style.setProperty('--player-hue', currentHue);
     
     const payload = {
@@ -86,48 +87,28 @@ network.onDisconnect = () => {
     alert("Disconnected from Host.");
 };
 
-// Inside handleCollision(playerId) ...
-    handleCollision(playerId) {
-        const data = this.playerBodies.get(playerId);
-        if (!data) return;
-
-        // Play crunch sound
-        window.audio.playHit();
+network.onData = (hostId, data) => {
+    if (data.type === 'sys_ui') {
+        const layout = data.layout;
+        lobbyView.classList.add('view-hidden');
+        gamepadView.classList.add('view-hidden');
         
-        // Tell the specific player's phone to VIBRATE heavily (Haptics)
-        window.engine.network.send({ type: 'sys_haptic', pattern:[100, 50, 100] }, playerId);
-
-        const startY = (this.laneCount - 0.5) * this.laneSize;
-        data.targetY = startY;
-        Matter.Body.setPosition(data.body, { x: data.body.position.x, y: startY });
-    }
-
-    // Inside onInput() when checking win condition ...
-    onInput(playerId, data) {
-        if (data.type === 'game_input' && data.action === 'dpad') {
-            const pData = this.playerBodies.get(playerId);
-            if (!pData) return;
-
-            window.audio.playJump(); // Play jump sound!
-
-            // ... (movement logic remains the same)
-
-            // Check Win Condition
-            if (nextY < this.laneSize) {
-                window.audio.playCoin(); // Play score sound!
-                
-                // Tell the phone to do a quick happy vibration
-                window.engine.network.send({ type: 'sys_haptic', pattern: [50] }, playerId);
-                
-                pData.player.score += 10;
-                
-                setTimeout(() => {
-                    const startY = (this.laneCount - 0.5) * this.laneSize;
-                    Matter.Body.setPosition(pData.body, { x: pData.body.position.x, y: startY });
-                }, 500);
-            }
+        if (layout === 'lobby') {
+            lobbyView.classList.remove('view-hidden');
+            lobbyView.classList.add('view-active');
+        } else if (layout === 'gamepad') {
+            gamepadView.classList.remove('view-hidden');
+            gamepadView.classList.add('view-active');
+        }
+    } 
+    // Listen for Haptic triggers from the host
+    else if (data.type === 'sys_haptic') {
+        // navigator.vibrate takes an array of millisecond durations e.g.[100, 50, 100]
+        if ('vibrate' in navigator) {
+            navigator.vibrate(data.pattern);
         }
     }
+};
 
 window.onload = () => {
     // Initial color set
@@ -162,4 +143,3 @@ new p5((p) => {
         if (container.clientWidth > 0) p.resizeCanvas(container.clientWidth, container.clientHeight);
     };
 });
-
