@@ -7,89 +7,95 @@
     
     <link rel="stylesheet" href="css/main.css">
     
+    <!-- Include P5 and Character logic directly on the phone for local preview -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
 </head>
 <body>
 
+    <!-- Forces users to turn their phone sideways -->
+    <div id="portrait-lock">
+        <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+            <path d="M12 18h.01"></path>
+            <path d="M20 12h2a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"></path>
+        </svg>
+        <h2>Please rotate your device</h2>
+        <p>This controller requires Landscape Mode.</p>
+    </div>
+
     <div id="controller-container">
         
+        <!-- Join Screen -->
         <div class="panel" id="connect-panel">
             <h2 style="text-align: center;">Join Arcade</h2>
             <div class="input-group">
-                <label for="room-input">Room Code</label>
-                <input type="text" id="room-input" placeholder="ABCD" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" style="text-transform: uppercase;">
+                <input type="text" id="room-input" placeholder="ROOM CODE" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" style="text-transform: uppercase; text-align: center; font-size: 1.5rem; letter-spacing: 4px;">
             </div>
-            <button class="btn" id="connect-btn">Join</button>
+            <button class="btn" id="connect-btn">Connect</button>
         </div>
 
-        <div id="dynamic-ui" class="view-hidden" style="width: 100%; display: flex; justify-content: center;">
+        <div id="dynamic-ui" class="view-hidden" style="width: 100%; height: 100%;">
             
-            <div class="panel view-hidden" id="view-lobby">
-                <h2 style="text-align: center;">Customize</h2>
+            <!-- Lobby: Split View -->
+            <div class="panel lobby-split view-hidden" id="view-lobby">
                 
-                <div class="input-group">
-                    <label for="player-name">Your Name</label>
-                    <input type="text" id="player-name" maxlength="12" autocomplete="off">
+                <!-- Left Side: Live Preview -->
+                <div class="lobby-preview" id="preview-canvas-container">
+                    <!-- P5 injects here -->
                 </div>
 
-                <div class="input-group">
-                    <label>Color Hue</label>
-                    <input type="range" id="hue-slider" class="hue-slider" min="0" max="360" value="210">
+                <!-- Right Side: Controls -->
+                <div class="lobby-controls">
+                    <div class="input-group">
+                        <label>Name</label>
+                        <input type="text" id="player-name" maxlength="12" autocomplete="off">
+                    </div>
+                    <div class="input-group">
+                        <label>Hue</label>
+                        <input type="range" id="hue-slider" class="hue-slider" min="0" max="360" value="210">
+                    </div>
+                    <div class="input-group">
+                        <label>Face & Variant</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="face-style" style="flex: 1;"><option value="classic">Classic</option><option value="derpy">Derpy</option><option value="anime">Anime</option></select>
+                            <select id="face-variant" style="flex: 1;"><option value="boy">Boy</option><option value="girl">Girl</option></select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Accessories</label>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="hat-select" style="flex: 1;"><option value="none">No Hat</option><option value="cap">Cap</option><option value="topHat">Top Hat</option><option value="crown">Crown</option></select>
+                            <select id="mask-select" style="flex: 1;"><option value="none">No Mask</option><option value="bandit">Bandit</option><option value="bandana">Bandana</option></select>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Back</label>
+                        <select id="back-select"><option value="none">None</option><option value="cape">Hero Cape</option><option value="backpack">Backpack</option><option value="wings">Fairy Wings</option></select>
+                    </div>
+                    <button class="btn" id="ready-btn" style="margin-top: auto;">READY UP</button>
                 </div>
-
-                <div class="input-group">
-                    <label>Face Style</label>
-                    <select id="face-style">
-                        <option value="classic">Classic</option>
-                        <option value="derpy">Derpy</option>
-                        <option value="anime">Anime</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <label>Variant</label>
-                    <select id="face-variant">
-                        <option value="boy">Boy</option>
-                        <option value="girl">Girl</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <label>Hat</label>
-                    <select id="hat-select">
-                        <option value="none">None</option>
-                        <option value="cap">Baseball Cap</option>
-                        <option value="topHat">Top Hat</option>
-                        <option value="crown">Crown</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <label>Mask</label>
-                    <select id="mask-select">
-                        <option value="none">None</option>
-                        <option value="bandit">Bandit Mask</option>
-                        <option value="bandana">Bandana</option>
-                    </select>
-                </div>
-
-                <div class="input-group">
-                    <label>Back</label>
-                    <select id="back-select">
-                        <option value="none">None</option>
-                        <option value="cape">Hero Cape</option>
-                        <option value="backpack">Backpack</option>
-                        <option value="wings">Fairy Wings</option>
-                    </select>
-                </div>
-
-                <button class="btn" id="ready-btn" style="margin-top: 16px;">READY UP</button>
             </div>
-        </div>
 
+            <!-- Game: Crossy D-Pad View -->
+            <div class="panel view-hidden" id="view-crossy" style="height: 100%; justify-content: center;">
+                <div class="d-pad-container">
+                    <div class="d-pad">
+                        <button class="d-btn up" data-action="hop" data-dir="up"><svg viewBox="0 0 24 24"><path d="M12 4l-8 8h6v8h4v-8h6z"/></svg></button>
+                        <button class="d-btn left" data-action="hop" data-dir="left"><svg viewBox="0 0 24 24"><path d="M4 12l8 8v-6h8v-4h-8v-6z"/></svg></button>
+                        <button class="d-btn right" data-action="hop" data-dir="right"><svg viewBox="0 0 24 24"><path d="M20 12l-8-8v6H4v4h8v6z"/></svg></button>
+                        <button class="d-btn down" data-action="hop" data-dir="down"><svg viewBox="0 0 24 24"><path d="M12 20l8-8h-6V4h-4v8H4z"/></svg></button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
     </div>
 
+    <!-- Scripts -->
     <script src="js/core/network.js"></script>
+    <script src="js/core/character.js"></script>
+    <script src="js/core/players.js"></script>
     <script src="js/client.js"></script>
 </body>
 </html>
