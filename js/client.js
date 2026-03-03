@@ -5,10 +5,21 @@
 const PREFIX = "PBP-";
 const network = new NetworkManager(false);
 
-const localPlayer = new Player('local');
-localPlayer.name = "Player " + Math.floor(1000 + Math.random() * 9000);
-localPlayer.hue = Math.floor(Math.random() * 360);
+// --- SESSION MANAGEMENT ---
+// Retrieve or Generate a Persistent UUID for this phone
+let sessionUuid = localStorage.getItem('pbp_session_id');
+if (!sessionUuid) {
+    sessionUuid = crypto.randomUUID ? crypto.randomUUID() : 'user_' + Date.now() + Math.random();
+    localStorage.setItem('pbp_session_id', sessionUuid);
+}
 
+const localPlayer = new Player(sessionUuid, null); // PeerID is null locally
+// Restore previous name if available
+const storedName = localStorage.getItem('pbp_player_name');
+if (storedName) localPlayer.name = storedName;
+else localPlayer.name = "Player " + Math.floor(1000 + Math.random() * 9000);
+
+// UI Refs
 const connectPanel = document.getElementById('connect-panel');
 const dynamicUi = document.getElementById('dynamic-ui');
 const lobbyView = document.getElementById('view-lobby');
@@ -27,6 +38,7 @@ const inputs = {
 const readyBtn = document.getElementById('ready-btn');
 let isReady = false;
 
+// Init inputs
 inputs.name.value = localPlayer.name;
 inputs.hue.value = localPlayer.hue;
 
@@ -35,13 +47,18 @@ function joinRoom(code) {
     if (cleanCode.length !== 4) return alert("Room code must be 4 characters.");
     document.getElementById('connect-btn').innerText = "Connecting...";
     network.initialize();
-    network.onReady = () => network.connectToHost(`${PREFIX}${cleanCode}`);
+    
+    // Pass UUID to network manager to send during handshake
+    network.onReady = () => network.connectToHost(`${PREFIX}${cleanCode}`, sessionUuid);
 }
 
 function updateLocalStateAndSend() {
     const currentHue = parseInt(inputs.hue.value);
     document.documentElement.style.setProperty('--player-hue', currentHue);
     
+    // Save name persistence
+    localStorage.setItem('pbp_player_name', inputs.name.value);
+
     const payload = {
         name: inputs.name.value || "Player",
         hue: currentHue,
@@ -50,7 +67,7 @@ function updateLocalStateAndSend() {
         hat: inputs.hat.value,
         mask: inputs.mask.value,
         back: inputs.back.value,
-        isReady: isReady // SYNC READY STATE
+        isReady: isReady
     };
     
     localPlayer.updateCustomization(payload);
@@ -66,7 +83,6 @@ Object.values(inputs).forEach((el) => {
 
 readyBtn.addEventListener('click', () => {
     isReady = !isReady;
-    
     Object.values(inputs).forEach(i => i.disabled = isReady);
     
     if (isReady) {
@@ -76,7 +92,6 @@ readyBtn.addEventListener('click', () => {
         readyBtn.classList.remove('btn-ready');
         readyBtn.innerText = "READY UP";
     }
-    
     updateLocalStateAndSend();
 });
 
@@ -110,13 +125,11 @@ network.onData = (hostId, data) => {
         lobbyView.classList.add('view-hidden');
         gamepadView.classList.add('view-hidden');
         
-        // Host controls screen switching, reset local ready state
         if (layout === 'lobby') {
             isReady = false;
             readyBtn.classList.remove('btn-ready');
             readyBtn.innerText = "READY UP";
             Object.values(inputs).forEach(i => i.disabled = false);
-            
             lobbyView.classList.remove('view-hidden');
             lobbyView.classList.add('view-active');
         } else if (layout === 'gamepad') {
