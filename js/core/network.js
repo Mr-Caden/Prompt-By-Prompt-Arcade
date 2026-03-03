@@ -1,33 +1,27 @@
 /**
  * Network Manager
- * Handles WebRTC connections via PeerJS for both Host and Client modes.
+ * Handles WebRTC connections via PeerJS.
+ * Includes Heartbeat (Keep-Alive) and Handshake logic for session restoration.
  */
 class NetworkManager {
     constructor(isHost) {
         this.isHost = isHost;
         this.peer = null;
-        this.connections = new Map(); // For Host: Map of clientId -> DataConnection
-        this.hostConnection = null;   // For Client: DataConnection to Host
+        this.connections = new Map(); // Map<peerId, DataConnection>
+        this.hostConnection = null;
         
-        // Callbacks to be assigned by the app
+        // Callbacks
         this.onReady = null;
         this.onConnect = null;
         this.onDisconnect = null;
         this.onData = null;
-        this.onError = null;
+        this.onHandshake = null; // New: triggered when a client identifies themselves
+
+        this.pingInterval = null;
     }
 
-    /**
-     * Initializes the PeerJS instance.
-     * @param {string} requestedId - The specific ID to request, or null for random.
-     */
     initialize(requestedId = null) {
-        // We use the default PeerJS public cloud server for ease of setup.
-        // For production, a custom PeerServer could be deployed.
-        const options = {
-            debug: 2
-        };
-
+        const options = { debug: 1 }; // Low debug level for performance
         this.peer = requestedId ? new Peer(requestedId, options) : new Peer(options);
 
         this.peer.on('open', (id) => {
@@ -39,28 +33,41 @@ class NetworkManager {
             if (this.isHost) {
                 this.setupHostConnection(conn);
             } else {
-                console.warn("[Network] Client received incoming connection, ignoring.");
+                // Clients shouldn't receive connections in this architecture
+                conn.close();
             }
         });
 
         this.peer.on('error', (err) => {
-            console.error('[Network] PeerJS Error:', err);
-            if (this.onError) this.onError(err);
+            console.error('[Network] Error:', err);
         });
+
+        // Start Heartbeat if Client
+        if (!this.isHost) {
+            this.startHeartbeat();
+        }
     }
 
     /**
-     * Connects a Client to a Host.
-     * @param {string} hostId - The ID of the host to connect to.
+     * Client: Connects to Host and sends Identity Handshake
      */
-    connectToHost(hostId) {
+    connectToHost(hostId, sessionUuid) {
         if (this.isHost) return;
         
-        console.log(`[Network] Attempting connection to Host: ${hostId}`);
+        // Close existing if any
+        if (this.hostConnection) this.hostConnection.close();
+
         this.hostConnection = this.peer.connect(hostId, { reliable: true });
         
         this.hostConnection.on('open', () => {
-            console.log(`[Network] Connected to Host: ${hostId}`);
+            console.log(`[Network] Connected to Host.`);
+            
+            // IMMEDIATE HANDSHAKE: Send Session UUID
+            this.hostConnection.send({
+                type: 'sys_handshake',
+                uuid: sessionUuid
+            });
+
             if (this.onConnect) this.onConnect(hostId);
         });
 
@@ -69,55 +76,64 @@ class NetworkManager {
         });
 
         this.hostConnection.on('close', () => {
-            console.log(`[Network] Disconnected from Host.`);
-            this.hostConnection = null;
-            if (this.onDisconnect) this.onDisconnect(hostId);
+            console.log(`[Network] Disconnected.`);
+            if (this.onDisconnect) this.onDisconnect();
         });
     }
 
     /**
-     * Internal: Sets up event listeners for an incoming connection on the Host.
-     * @param {DataConnection} conn 
+     * Host: Handle incoming client
      */
     setupHostConnection(conn) {
         conn.on('open', () => {
-            console.log(`[Network] Client connected: ${conn.peer}`);
+            // We wait for the 'sys_handshake' data packet before officially "Adding" the player
             this.connections.set(conn.peer, conn);
-            if (this.onConnect) this.onConnect(conn.peer);
         });
 
         conn.on('data', (data) => {
+            // Intercept Handshake
+            if (data.type === 'sys_handshake') {
+                if (this.onHandshake) this.onHandshake(conn.peer, data.uuid);
+                return;
+            }
+            // Pass other data up
             if (this.onData) this.onData(conn.peer, data);
         });
 
         conn.on('close', () => {
-            console.log(`[Network] Client disconnected: ${conn.peer}`);
             this.connections.delete(conn.peer);
-            if (this.onDisconnect) this.onDisconnect(conn.peer);
+            // We do NOT trigger onDisconnect here. 
+            // We let the PlayerManager handle "Ghosting" via heartbeat timeout.
+        });
+        
+        conn.on('error', () => {
+            this.connections.delete(conn.peer);
         });
     }
 
-    /**
-     * Sends data to a specific peer or all peers.
-     * @param {object} data - The payload to send.
-     * @param {string} targetId - (Host only) The specific client ID. If null, broadcasts.
-     */
-    send(data, targetId = null) {
+    send(data, targetPeerId = null) {
         if (this.isHost) {
-            if (targetId) {
-                const conn = this.connections.get(targetId);
+            if (targetPeerId) {
+                const conn = this.connections.get(targetPeerId);
                 if (conn && conn.open) conn.send(data);
             } else {
-                // Broadcast to all clients
                 this.connections.forEach(conn => {
                     if (conn.open) conn.send(data);
                 });
             }
         } else {
-            // Client sending to Host
             if (this.hostConnection && this.hostConnection.open) {
                 this.hostConnection.send(data);
             }
         }
+    }
+
+    startHeartbeat() {
+        if (this.pingInterval) clearInterval(this.pingInterval);
+        this.pingInterval = setInterval(() => {
+            if (this.hostConnection && this.hostConnection.open) {
+                this.hostConnection.send({ type: 'sys_ping' });
+            }
+        }, 1000); // Ping every 1 second
     }
 }
