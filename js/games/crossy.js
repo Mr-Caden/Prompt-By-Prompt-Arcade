@@ -10,11 +10,11 @@ class CrossyGame extends ArcadeGame {
         // Game configuration
         this.laneCount = 10; 
         this.laneSize = 0; // Calculated in setup
-        this.cars = [];
+        this.cars =[];
         this.playerBodies = new Map();
         
         // Lane types: 'grass' (safe), 'road' (dangerous)
-        this.lanes = [];
+        this.lanes =[];
         
         // Aesthetic colors
         this.colors = {
@@ -37,7 +37,7 @@ class CrossyGame extends ArcadeGame {
         this.laneSize = this.p.height / this.laneCount;
 
         // Define lane types (Bottom is safe, top is goal, middle is road)
-        this.lanes = [];
+        this.lanes =[];
         for (let i = 0; i < this.laneCount; i++) {
             if (i === 0) this.lanes.push('goal');
             else if (i === this.laneCount - 1) this.lanes.push('grass');
@@ -70,7 +70,7 @@ class CrossyGame extends ArcadeGame {
         });
 
         // Spawn Cars for road lanes
-        this.cars = [];
+        this.cars =[];
         this.lanes.forEach((type, index) => {
             if (type === 'road') {
                 const y = (index + 0.5) * this.laneSize;
@@ -138,7 +138,9 @@ class CrossyGame extends ArcadeGame {
         });
     }
 
-    // Inside handleCollision(playerId) ...
+    /**
+     * Resets player on collision and triggers haptic/audio feedback.
+     */
     handleCollision(playerId) {
         const data = this.playerBodies.get(playerId);
         if (!data) return;
@@ -146,39 +148,13 @@ class CrossyGame extends ArcadeGame {
         // Play crunch sound
         window.audio.playHit();
         
-        // Tell the specific player's phone to VIBRATE heavily (Haptics)
-        window.engine.network.send({ type: 'sys_haptic', pattern:[100, 50, 100] }, playerId);
+        // Tell the specific player's phone to VIBRATE heavily
+        window.engine.network.send({ type: 'sys_haptic', pattern: [100, 50, 100] }, playerId);
 
+        // Move target back to start
         const startY = (this.laneCount - 0.5) * this.laneSize;
         data.targetY = startY;
         Matter.Body.setPosition(data.body, { x: data.body.position.x, y: startY });
-    }
-
-    // Inside onInput() when checking win condition ...
-    onInput(playerId, data) {
-        if (data.type === 'game_input' && data.action === 'dpad') {
-            const pData = this.playerBodies.get(playerId);
-            if (!pData) return;
-
-            window.audio.playJump(); // Play jump sound!
-
-            // ... (movement logic remains the same)
-
-            // Check Win Condition
-            if (nextY < this.laneSize) {
-                window.audio.playCoin(); // Play score sound!
-                
-                // Tell the phone to do a quick happy vibration
-                window.engine.network.send({ type: 'sys_haptic', pattern: [50] }, playerId);
-                
-                pData.player.score += 10;
-                
-                setTimeout(() => {
-                    const startY = (this.laneCount - 0.5) * this.laneSize;
-                    Matter.Body.setPosition(pData.body, { x: pData.body.position.x, y: startY });
-                }, 500);
-            }
-        }
     }
 
     /**
@@ -242,6 +218,51 @@ class CrossyGame extends ArcadeGame {
     }
 
     /**
+     * Handles mobile input from the Gamepad layout.
+     */
+    onInput(playerId, data) {
+        if (data.type === 'game_input' && data.action === 'dpad') {
+            const pData = this.playerBodies.get(playerId);
+            if (!pData) return;
+
+            // Play jump sound
+            window.audio.playJump();
+
+            let nextX = pData.body.position.x;
+            let nextY = pData.body.position.y;
+
+            if (data.dir === 'up') nextY -= this.laneSize;
+            if (data.dir === 'down') nextY += this.laneSize;
+            if (data.dir === 'left') nextX -= this.laneSize;
+            if (data.dir === 'right') nextX += this.laneSize;
+
+            // Stay within screen bounds
+            nextX = this.p.constrain(nextX, this.laneSize, this.p.width - this.laneSize);
+            nextY = this.p.constrain(nextY, this.laneSize / 2, this.p.height - (this.laneSize / 2));
+
+            // Update physics body position
+            Matter.Body.setPosition(pData.body, { x: nextX, y: nextY });
+
+            // Check Win Condition
+            if (nextY < this.laneSize) {
+                // Play score sound
+                window.audio.playCoin(); 
+                
+                // Tell the phone to do a quick happy vibration
+                window.engine.network.send({ type: 'sys_haptic', pattern: [50] }, playerId);
+                
+                pData.player.score += 10;
+                
+                // Reset player after a short delay
+                setTimeout(() => {
+                    const startY = (this.laneCount - 0.5) * this.laneSize;
+                    Matter.Body.setPosition(pData.body, { x: pData.body.position.x, y: startY });
+                }, 500);
+            }
+        }
+    }
+
+    /**
      * Defines which controller layout the phone should use.
      */
     getMobileUI() {
@@ -254,7 +275,7 @@ class CrossyGame extends ArcadeGame {
     cleanup() {
         if (this.matter) {
             Matter.World.clear(this.matter.world);
-            this.cars = [];
+            this.cars =[];
             this.playerBodies.clear();
         }
     }
