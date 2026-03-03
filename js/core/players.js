@@ -1,20 +1,70 @@
 /**
  * Player Manager
- * Manages the state, customization (name, color), and scores of all connected players.
+ * Manages the state, customization, and scores of all connected players.
  */
 
 class Player {
     constructor(id) {
         this.id = id;
         this.name = "Player";
-        this.color = "#4F86F7"; // Default to accent blue
         this.isReady = false;
         this.score = 0;
+        
+        // Customization
+        this.hue = 210;
+        this.faceStyle = 'classic';
+        this.variant = 'boy';
+        this.hat = 'none';
+        this.mask = 'none';
+        this.back = 'none';
+
+        // Unique random offset so players blink independently
+        this.blinkOffset = Math.random() * 4000;
     }
 
-    updateCustomization(name, color) {
-        if (name) this.name = name.substring(0, 12); // Limit name length
-        if (color) this.color = color;
+    updateCustomization(data) {
+        if (data.name !== undefined) this.name = data.name.substring(0, 12);
+        if (data.hue !== undefined) this.hue = data.hue;
+        if (data.faceStyle !== undefined) this.faceStyle = data.faceStyle;
+        if (data.variant !== undefined) this.variant = data.variant;
+        if (data.hat !== undefined) this.hat = data.hat;
+        if (data.mask !== undefined) this.mask = data.mask;
+        if (data.back !== undefined) this.back = data.back;
+        if (data.isReady !== undefined) this.isReady = data.isReady;
+    }
+
+    /**
+     * Draws the player character onto the p5 canvas.
+     * Keeps colorMode safety by utilizing push() and pop().
+     */
+    draw(p, x, y, scale = 1, emotion = 'normal') {
+        const time = p.millis();
+        const isBlinking = ((time + this.blinkOffset) % 4000) < 150;
+
+        p.push();
+        p.translate(x, y);
+        p.scale(scale);
+        
+        // Temporarily switch to HSB to render character
+        p.colorMode(p.HSB, 360, 100, 100, 1);
+        
+        // Render layers using CharLib
+        if (CharLib.back[this.back]) CharLib.back[this.back](p, this.hue);
+
+        // Main Body
+        p.fill(this.hue, 80, 95);
+        p.stroke(0, 0, 15);
+        p.strokeWeight(4);
+        p.rect(-40, -40, 80, 80, 30); 
+
+        if (CharLib.faces[this.faceStyle]) {
+            CharLib.faces[this.faceStyle](p, this.variant, emotion, isBlinking);
+        }
+
+        if (CharLib.masks[this.mask]) CharLib.masks[this.mask](p, this.hue);
+        if (CharLib.hats[this.hat]) CharLib.hats[this.hat](p, this.hue);
+
+        p.pop(); // Returns to previous color mode
     }
 }
 
@@ -45,8 +95,7 @@ class PlayerManager {
     updatePlayer(id, data) {
         const player = this.players.get(id);
         if (player) {
-            player.updateCustomization(data.name, data.color);
-            if (data.isReady !== undefined) player.isReady = data.isReady;
+            player.updateCustomization(data);
         }
     }
 
