@@ -138,19 +138,47 @@ class CrossyGame extends ArcadeGame {
         });
     }
 
-    /**
-     * Resets player on collision.
-     */
+    // Inside handleCollision(playerId) ...
     handleCollision(playerId) {
         const data = this.playerBodies.get(playerId);
         if (!data) return;
 
-        // Move target back to start
+        // Play crunch sound
+        window.audio.playHit();
+        
+        // Tell the specific player's phone to VIBRATE heavily (Haptics)
+        window.engine.network.send({ type: 'sys_haptic', pattern:[100, 50, 100] }, playerId);
+
         const startY = (this.laneCount - 0.5) * this.laneSize;
         data.targetY = startY;
         Matter.Body.setPosition(data.body, { x: data.body.position.x, y: startY });
-        
-        // Brief visual feedback on phone or screen could go here
+    }
+
+    // Inside onInput() when checking win condition ...
+    onInput(playerId, data) {
+        if (data.type === 'game_input' && data.action === 'dpad') {
+            const pData = this.playerBodies.get(playerId);
+            if (!pData) return;
+
+            window.audio.playJump(); // Play jump sound!
+
+            // ... (movement logic remains the same)
+
+            // Check Win Condition
+            if (nextY < this.laneSize) {
+                window.audio.playCoin(); // Play score sound!
+                
+                // Tell the phone to do a quick happy vibration
+                window.engine.network.send({ type: 'sys_haptic', pattern: [50] }, playerId);
+                
+                pData.player.score += 10;
+                
+                setTimeout(() => {
+                    const startY = (this.laneCount - 0.5) * this.laneSize;
+                    Matter.Body.setPosition(pData.body, { x: pData.body.position.x, y: startY });
+                }, 500);
+            }
+        }
     }
 
     /**
