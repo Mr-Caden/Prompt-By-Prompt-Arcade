@@ -1,7 +1,7 @@
 /**
  * Synthesized 8-Bit Audio Manager
  * Generates retro arcade sounds procedurally using the Web Audio API.
- * Requires NO external sound files, ensuring instant load times and zero bandwidth.
+ * Requires NO external sound files, ensuring instant load times.
  */
 
 class AudioManager {
@@ -25,6 +25,7 @@ class AudioManager {
      * Plays a high-pitched happy "coin" or "select" sound.
      */
     playCoin() {
+        if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
@@ -51,6 +52,7 @@ class AudioManager {
      * Plays a rising "Jump" sound.
      */
     playJump() {
+        if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
@@ -77,6 +79,7 @@ class AudioManager {
      * Plays a harsh, low noise for collisions/damage.
      */
     playHit() {
+        if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
@@ -103,6 +106,7 @@ class AudioManager {
      * Quick UI tick for moving cursors.
      */
     playTick() {
+        if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         
@@ -123,5 +127,5 @@ class AudioManager {
     }
 }
 
-// Global instance
+// Global instance attached to window for easy access anywhere
 window.audio = new AudioManager();
