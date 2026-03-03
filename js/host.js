@@ -5,7 +5,9 @@
 const PREFIX = "PBP-";
 const network = new NetworkManager(true);
 const players = new PlayerManager();
-let engine = null;
+
+// Explicitly attach to window so Game Modules can access it via window.engine
+window.engine = null; 
 
 const state = { roomCode: "" };
 
@@ -42,10 +44,10 @@ network.onReady = (id) => {
 network.onConnect = (clientId) => {
     const p = players.addPlayer(clientId);
     updateLobbyUI();
-    if (engine) engine.notifyPlayerJoined(p);
+    if (window.engine) window.engine.notifyPlayerJoined(p);
     
-    if (engine && engine.activeGame) {
-        const uiConfig = engine.activeGame.getMobileUI();
+    if (window.engine && window.engine.activeGame) {
+        const uiConfig = window.engine.activeGame.getMobileUI();
         network.send({ type: 'sys_ui', layout: uiConfig.layout }, clientId);
     }
 };
@@ -53,7 +55,7 @@ network.onConnect = (clientId) => {
 network.onDisconnect = (clientId) => {
     players.removePlayer(clientId);
     updateLobbyUI();
-    if (engine) engine.notifyPlayerLeft(clientId);
+    if (window.engine) window.engine.notifyPlayerLeft(clientId);
 };
 
 network.onData = (clientId, data) => {
@@ -61,15 +63,16 @@ network.onData = (clientId, data) => {
         players.updatePlayer(clientId, data.payload);
         return; 
     }
-    if (engine) engine.handleInput(clientId, data);
+    if (window.engine) window.engine.handleInput(clientId, data);
 };
 
 window.onload = () => {
     state.roomCode = generateRoomCode();
     network.initialize(`${PREFIX}${state.roomCode}`);
     
-    engine = new ArcadeEngine('game-canvas-container', network, players);
-    engine.start();
+    // Initialize Global Engine
+    window.engine = new ArcadeEngine('game-canvas-container', network, players);
+    window.engine.start();
     
     // Bind Top Bar Navigation
     const btnSelect = document.getElementById('nav-select');
@@ -79,17 +82,17 @@ window.onload = () => {
     btnSelect.addEventListener('click', () => {
         btnSelect.classList.add('active');
         btnLobby.classList.remove('active');
-        overlay.classList.add('lobby-hidden'); // Hide QR code
-        engine.loadGame(GameSelect);
+        overlay.classList.add('lobby-hidden');
+        window.engine.loadGame(GameSelect);
     });
 
     btnLobby.addEventListener('click', () => {
         btnLobby.classList.add('active');
         btnSelect.classList.remove('active');
-        overlay.classList.remove('lobby-hidden'); // Show QR code to let more join
-        engine.loadGame(LobbyRoom);
+        overlay.classList.remove('lobby-hidden');
+        window.engine.loadGame(LobbyRoom);
     });
 
     // Start on Game Select by default
-    engine.loadGame(GameSelect);
+    window.engine.loadGame(GameSelect);
 };
