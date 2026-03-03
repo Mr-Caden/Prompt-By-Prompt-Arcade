@@ -1,54 +1,144 @@
 /**
- * Game Select Screen
- * Responsive grid using discrete player cursors mapped to the D-Pad.
+ * Game Select Screen with Raffle Voting System
+ * Players place tickets on games. The engine raffles between the placed tickets.
  */
 
 class GameSelect extends ArcadeGame {
     constructor(p, matterEngine, players) {
         super(p, matterEngine, players);
         
-        this.games =[
+        // Define the available cards
+        this.cards =[
+            { title: "Random", class: 'random', color: "#9D4EDD" },
             { title: "Crossy Road", class: CrossyGame, color: "#45CB85" },
-            { title: "Platformer", class: null, color: "#EF767A" },
-            { title: "Match 3", class: null, color: "#F6C15B" },
-            { title: "Racing", class: null, color: "#9D4EDD" }
+            { title: "Sumo Platform", class: SumoGame, color: "#EF767A" }
         ];
 
-        // Map playerId -> selected index
-        this.playerSelections = new Map();
+        // Player UI State
+        this.playerCursors = new Map(); // playerId -> cardIndex
+        this.lockedVotes = new Map();   // playerId -> cardIndex (ticket placed)
+
+        // Machine States: 'VOTING', 'RAFFLE', 'LAUNCH'
+        this.state = 'VOTING';
+        this.votingTimer = 900; // 15 seconds to vote
+        
+        // Raffle Animation State
+        this.raffleTickets =[]; 
+        this.raffleIndex = 0;
+        this.raffleSpeed = 50; // Milliseconds between jumps
+        this.raffleNextJump = 0;
+        this.winningGameClass = null;
+        this.launchTimer = 0;
     }
 
     setup() {
         this.p.background('#F4F3EF');
         this.players.getAllPlayers().forEach(pl => {
-            if (!this.playerSelections.has(pl.id)) this.playerSelections.set(pl.id, 0);
+            if (!this.playerCursors.has(pl.id)) this.playerCursors.set(pl.id, 0);
         });
     }
 
-    update() {}
+    update() {
+        if (this.state === 'VOTING') {
+            this.votingTimer--;
+            
+            // Check if everyone voted
+            const allPlayers = this.players.getAllPlayers();
+            const everyoneVoted = allPlayers.length > 0 && allPlayers.every(p => this.lockedVotes.has(p.id));
+            
+            if (this.votingTimer <= 0 || everyoneVoted) {
+                this.startRaffle();
+            }
+        } 
+        else if (this.state === 'RAFFLE') {
+            const now = this.p.millis();
+            if (now > this.raffleNextJump) {
+                // Jump highlight
+                this.raffleIndex = (this.raffleIndex + 1) % this.raffleTickets.length;
+                window.audio.playTick();
+                
+                // Apply friction to slow down
+                this.raffleSpeed *= 1.15; 
+                this.raffleNextJump = now + this.raffleSpeed;
+
+                // Stop condition
+                if (this.raffleSpeed > 800) {
+                    this.state = 'LAUNCH';
+                    window.audio.playCoin();
+                    this.launchTimer = 180; // Wait 3 seconds to show winner
+                    
+                    // Determine actual winner
+                    let winnerCard = this.cards[this.raffleTickets[this.raffleIndex].cardIndex];
+                    if (winnerCard.class === 'random') {
+                        this.winningGameClass = window.engine.getRandomGame();
+                    } else {
+                        this.winningGameClass = winnerCard.class;
+                    }
+                }
+            }
+        }
+        else if (this.state === 'LAUNCH') {
+            this.launchTimer--;
+            if (this.launchTimer <= 0 && this.winningGameClass) {
+                window.engine.loadGame(this.winningGameClass);
+            }
+        }
+    }
+
+    startRaffle() {
+        this.state = 'RAFFLE';
+        this.raffleTickets =[];
+        
+        // Collect all placed tickets
+        this.lockedVotes.forEach((cardIndex, playerId) => {
+            const player = this.players.getPlayer(playerId);
+            if (player) {
+                this.raffleTickets.push({ cardIndex: cardIndex, color: `hsl(${player.hue}, 80%, 60%)` });
+            }
+        });
+
+        // If no one voted, default to Random
+        if (this.raffleTickets.length === 0) {
+            this.raffleTickets.push({ cardIndex: 0, color: '#FFF' });
+        }
+
+        // Shuffle tickets for fairness visual
+        this.raffleTickets.sort(() => Math.random() - 0.5);
+        
+        this.raffleIndex = 0;
+        this.raffleSpeed = 50;
+        this.raffleNextJump = this.p.millis() + this.raffleSpeed;
+    }
 
     draw() {
         this.p.background('#F4F3EF');
         
-        // Responsive Grid Calculation
-        const cols = this.p.width > 800 ? 4 : 2;
-        const rows = Math.ceil(this.games.length / cols);
-        
+        const cols = this.p.width > 800 ? 3 : 2;
+        const rows = Math.ceil(this.cards.length / cols);
         const padding = 40;
         const availableW = this.p.width - (padding * 2);
-        const availableH = this.p.height - (padding * 2) - 100; // Leave room for title
-        
+        const availableH = this.p.height - (padding * 2) - 100;
         const cardW = (availableW - (padding * (cols - 1))) / cols;
         const cardH = (availableH - (padding * (rows - 1))) / rows;
 
+        // Header
         this.p.textAlign(this.p.CENTER, this.p.CENTER);
         this.p.textSize(48);
         this.p.textStyle(this.p.BOLD);
         this.p.fill('#2D3142');
-        this.p.text("SELECT A GAME", this.p.width / 2, 60);
+        
+        if (this.state === 'VOTING') {
+            const secs = Math.ceil(this.votingTimer / 60);
+            this.p.text(`PLACE YOUR VOTES (${secs}s)`, this.p.width / 2, 60);
+        } else if (this.state === 'RAFFLE') {
+            this.p.text("RAFFLE IN PROGRESS...", this.p.width / 2, 60);
+        } else if (this.state === 'LAUNCH') {
+            this.p.fill('#45CB85');
+            this.p.text("WINNER SELECTED!", this.p.width / 2, 60);
+        }
 
         // Draw Cards
-        this.games.forEach((game, index) => {
+        this.cards.forEach((card, index) => {
             const c = index % cols;
             const r = Math.floor(index / cols);
             const x = padding + (c * (cardW + padding));
@@ -57,27 +147,59 @@ class GameSelect extends ArcadeGame {
             this.p.push();
             this.p.translate(x, y);
 
-            // Card Base
-            this.p.noStroke();
-            this.p.fill(game.color);
+            // Highlight if it's the current raffle selection
+            let isRaffleHighlight = false;
+            if (this.state !== 'VOTING' && this.raffleTickets.length > 0) {
+                if (this.raffleTickets[this.raffleIndex].cardIndex === index) {
+                    isRaffleHighlight = true;
+                }
+            }
+
+            if (isRaffleHighlight) {
+                this.p.stroke('#2D3142');
+                this.p.strokeWeight(8);
+            } else {
+                this.p.noStroke();
+            }
+
+            this.p.fill(card.color);
             this.p.rect(0, 0, cardW, cardH, 16);
 
-            // Title
+            this.p.noStroke();
             this.p.fill('#FFF');
-            this.p.textSize(24);
-            this.p.text(game.title, cardW/2, cardH/2);
+            this.p.textSize(32);
+            this.p.text(card.title, cardW/2, cardH/2);
 
-            // Draw player cursors on this card
-            let cursorCount = 0;
-            this.playerSelections.forEach((selectedIndex, playerId) => {
-                if (selectedIndex === index) {
+            // Draw floating Cursors (only during voting)
+            if (this.state === 'VOTING') {
+                let cursorCount = 0;
+                this.playerCursors.forEach((selectedIndex, playerId) => {
+                    if (selectedIndex === index && !this.lockedVotes.has(playerId)) {
+                        const pl = this.players.getPlayer(playerId);
+                        if (pl) {
+                            const cx = 40 + (cursorCount * 45);
+                            const cy = cardH - 40;
+                            pl.draw(this.p, cx, cy, 0.5, 'confused');
+                            cursorCount++;
+                        }
+                    }
+                });
+            }
+
+            // Draw Locked Tickets (Raffle entries)
+            let ticketCount = 0;
+            this.lockedVotes.forEach((lockedIndex, playerId) => {
+                if (lockedIndex === index) {
                     const pl = this.players.getPlayer(playerId);
                     if (pl) {
-                        // Draw mini face icon
-                        const cx = 30 + (cursorCount * 40);
-                        const cy = cardH - 30;
-                        pl.draw(this.p, cx, cy, 0.4, 'happy');
-                        cursorCount++;
+                        this.p.fill(`hsl(${pl.hue}, 80%, 50%)`);
+                        this.p.stroke(255);
+                        this.p.strokeWeight(2);
+                        // Draw a little ticket rectangle
+                        const tx = 20 + (ticketCount * 30);
+                        const ty = 20;
+                        this.p.rect(tx, ty, 20, 30, 4);
+                        ticketCount++;
                     }
                 }
             });
@@ -87,9 +209,13 @@ class GameSelect extends ArcadeGame {
     }
 
     onInput(playerId, data) {
+        if (this.state !== 'VOTING') return;
+
         if (data.type === 'game_input') {
-            let currentIndex = this.playerSelections.get(playerId) || 0;
-            const cols = this.p.width > 800 ? 4 : 2;
+            if (this.lockedVotes.has(playerId)) return; // Can't change vote once locked
+
+            let currentIndex = this.playerCursors.get(playerId) || 0;
+            const cols = this.p.width > 800 ? 3 : 2;
 
             if (data.action === 'dpad') {
                 if (data.dir === 'right') currentIndex++;
@@ -97,31 +223,28 @@ class GameSelect extends ArcadeGame {
                 if (data.dir === 'down') currentIndex += cols;
                 if (data.dir === 'up') currentIndex -= cols;
 
-                // Clamp to prevent errors
-                if (currentIndex < 0) currentIndex = 0;
-                if (currentIndex >= this.games.length) currentIndex = this.games.length - 1;
-
-                // Play UI Tick if the index changed
-                if (this.playerSelections.get(playerId) !== currentIndex) {
+                currentIndex = this.p.constrain(currentIndex, 0, this.cards.length - 1);
+                
+                if (this.playerCursors.get(playerId) !== currentIndex) {
                     window.audio.playTick();
                 }
 
-                this.playerSelections.set(playerId, currentIndex);
+                this.playerCursors.set(playerId, currentIndex);
             }
 
             if (data.action === 'btn_a') {
-                const gameConfig = this.games[currentIndex];
-                if (gameConfig.class) {
-                    // Play Start Sound
-                    window.audio.playCoin(); 
-                    // Start the selected game
-                    window.engine.loadGame(gameConfig.class);
-                }
+                window.audio.playJump();
+                this.lockedVotes.set(playerId, currentIndex);
+                window.engine.network.send({ type: 'sys_haptic', pattern: [50] }, playerId);
             }
         }
     }
 
-    onPlayerJoin(player) { this.playerSelections.set(player.id, 0); }
-    onPlayerLeave(playerId) { this.playerSelections.delete(playerId); }
+    onPlayerJoin(player) { this.playerCursors.set(player.id, 0); }
+    onPlayerLeave(playerId) { 
+        this.playerCursors.delete(playerId); 
+        this.lockedVotes.delete(playerId);
+    }
+    
     getMobileUI() { return { layout: 'gamepad' }; }
 }
