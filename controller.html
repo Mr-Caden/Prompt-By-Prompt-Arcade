@@ -34,7 +34,6 @@
 
         <div id="dynamic-ui" class="view-hidden" style="width: 100%; height: 100%;">
             
-            <!-- Customization Lobby -->
             <div class="panel lobby-split view-hidden" id="view-lobby">
                 <div class="lobby-preview" id="preview-canvas-container"></div>
                 <div class="lobby-controls">
@@ -64,11 +63,11 @@
                         <label>Back</label>
                         <select id="back-select"><option value="none">None</option><option value="cape">Hero Cape</option><option value="backpack">Backpack</option><option value="wings">Fairy Wings</option></select>
                     </div>
-                    <!-- The Lobby doesn't need a READY button anymore because the Host controls when to switch screens! -->
+                    <!-- READY BUTTON RESTORED FOR PLAYER CONTROL -->
+                    <button class="btn" id="ready-btn" style="margin-top: auto;">READY UP</button>
                 </div>
             </div>
 
-            <!-- Generic Gamepad View -->
             <div class="panel view-hidden" id="view-gamepad" style="background-color: var(--bg-color);">
                 <div class="gamepad-container">
                     <div class="d-pad">
