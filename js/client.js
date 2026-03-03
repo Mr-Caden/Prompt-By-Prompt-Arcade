@@ -36,9 +36,14 @@ function joinRoom(code) {
 }
 
 function updateLocalStateAndSend() {
+    const currentHue = parseInt(inputs.hue.value);
+    
+    // Update CSS Variable for dynamic coloring
+    document.documentElement.style.setProperty('--player-hue', currentHue);
+    
     const payload = {
         name: inputs.name.value || "Player",
-        hue: parseInt(inputs.hue.value),
+        hue: currentHue,
         faceStyle: inputs.faceStyle.value,
         variant: inputs.variant.value,
         hat: inputs.hat.value,
@@ -98,6 +103,9 @@ network.onData = (hostId, data) => {
 };
 
 window.onload = () => {
+    // Initial color set
+    document.documentElement.style.setProperty('--player-hue', localPlayer.hue);
+    
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
     if (roomParam) {
@@ -107,6 +115,7 @@ window.onload = () => {
     document.getElementById('connect-btn').addEventListener('click', () => joinRoom(document.getElementById('room-input').value));
 };
 
+// Preview Canvas
 new p5((p) => {
     p.setup = () => {
         const container = document.getElementById('preview-canvas-container');
