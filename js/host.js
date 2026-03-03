@@ -91,6 +91,9 @@ window.onload = () => {
     engine = new ArcadeEngine('game-canvas-container', network, players);
     engine.start();
     
-    // Load the Main Menu as the first module
+    // Queue up Crossy Road as the first game to play!
+    engine.tournamentQueue.push(CrossyGame);
+
+    // Load the Main Menu
     engine.loadGame(MainMenu);
 };
