@@ -74,6 +74,12 @@ window.onload = () => {
     window.engine = new ArcadeEngine('game-canvas-container', network, players);
     window.engine.start();
     
+    // Browsers require a user interaction to unlock Web Audio. 
+    // Clicking anywhere on the host screen initializes the audio engine.
+    document.body.addEventListener('click', () => {
+        if (window.audio) window.audio.init();
+    }, { once: true });
+    
     // Bind Top Bar Navigation
     const btnSelect = document.getElementById('nav-select');
     const btnLobby = document.getElementById('nav-lobby');
@@ -93,13 +99,6 @@ window.onload = () => {
         window.engine.loadGame(LobbyRoom);
     });
 
-    // Browsers require a user interaction to unlock Web Audio. 
-    // Clicking anywhere on the host screen initializes the audio engine.
-    document.body.addEventListener('click', () => {
-        if (window.audio) window.audio.init();
-    }, { once: true });
-
     // Start on Game Select by default
     window.engine.loadGame(GameSelect);
 };
-
