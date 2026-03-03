@@ -13,10 +13,14 @@ const dynamicUi = document.getElementById('dynamic-ui');
 // Lobby Specific Elements
 const lobbyView = document.getElementById('view-lobby');
 const nameInput = document.getElementById('player-name');
-const colorSwatches = document.querySelectorAll('.swatch');
+const hueSlider = document.getElementById('hue-slider');
+const faceSelect = document.getElementById('face-style');
+const variantSelect = document.getElementById('face-variant');
+const hatSelect = document.getElementById('hat-select');
+const maskSelect = document.getElementById('mask-select');
+const backSelect = document.getElementById('back-select');
 const readyBtn = document.getElementById('ready-btn');
 
-let selectedColor = "#4F86F7"; // Default
 let isReady = false;
 
 function joinRoom(code) {
@@ -34,29 +38,32 @@ function joinRoom(code) {
     network.onReady = () => network.connectToHost(`${PREFIX}${cleanCode}`);
 }
 
-// Send customization data to Host
 function sendPlayerUpdate() {
     network.send({
         type: 'sys_player_update',
         payload: {
             name: nameInput.value || "Player",
-            color: selectedColor,
+            hue: parseInt(hueSlider.value),
+            faceStyle: faceSelect.value,
+            variant: variantSelect.value,
+            hat: hatSelect.value,
+            mask: maskSelect.value,
+            back: backSelect.value,
             isReady: isReady
         }
     });
 }
 
-// --- Setup Lobby UI Interactions ---
-
-colorSwatches.forEach(swatch => {
-    swatch.addEventListener('click', (e) => {
-        if (isReady) return; // Lock customization if ready
-        
-        colorSwatches.forEach(s => s.classList.remove('selected'));
-        e.target.classList.add('selected');
-        selectedColor = e.target.dataset.color;
-        sendPlayerUpdate();
+// Bind Customization Inputs[hueSlider, faceSelect, variantSelect, hatSelect, maskSelect, backSelect].forEach(el => {
+    el.addEventListener('change', () => {
+        if (!isReady) sendPlayerUpdate();
     });
+    // For slider smooth updating
+    if (el === hueSlider) {
+        el.addEventListener('input', () => {
+            if (!isReady) sendPlayerUpdate();
+        });
+    }
 });
 
 nameInput.addEventListener('input', () => {
@@ -66,28 +73,29 @@ nameInput.addEventListener('input', () => {
 readyBtn.addEventListener('click', () => {
     isReady = !isReady;
     
+    const inputs =[nameInput, hueSlider, faceSelect, variantSelect, hatSelect, maskSelect, backSelect];
+    
     if (isReady) {
         readyBtn.classList.add('btn-ready');
         readyBtn.innerText = "WAITING FOR OTHERS...";
-        nameInput.disabled = true;
+        inputs.forEach(i => i.disabled = true);
     } else {
         readyBtn.classList.remove('btn-ready');
         readyBtn.innerText = "READY UP";
-        nameInput.disabled = false;
+        inputs.forEach(i => i.disabled = false);
     }
     
     sendPlayerUpdate();
 });
 
-
-// --- Network Event Bindings ---
-
+// Network Bindings
 network.onConnect = (hostId) => {
     connectPanel.classList.add('view-hidden');
     dynamicUi.classList.remove('view-hidden');
     
-    // Set initial name based on random digits to be unique
     nameInput.value = "Player " + Math.floor(1000 + Math.random() * 9000);
+    // Randomize initial look
+    hueSlider.value = Math.floor(Math.random() * 360);
     sendPlayerUpdate();
 };
 
@@ -99,37 +107,27 @@ network.onDisconnect = () => {
     connectBtn.disabled = false;
     connectBtn.innerText = "Join Arcade";
     
-    // Reset state
     isReady = false;
     readyBtn.classList.remove('btn-ready');
-    readyBtn.innerText = "READY UP";
-    nameInput.disabled = false;
+    readyBtn.innerText = "READY UP";[nameInput, hueSlider, faceSelect, variantSelect, hatSelect, maskSelect, backSelect].forEach(i => i.disabled = false);
     
     alert("Disconnected from Host.");
 };
 
 network.onData = (hostId, data) => {
-    // Switch UI layouts based on Host commands
     if (data.type === 'sys_ui') {
         const layout = data.layout;
-        
-        // Hide all views first
         lobbyView.classList.add('view-hidden');
-        
-        // Show requested view
         if (layout === 'lobby') {
             lobbyView.classList.remove('view-hidden');
             lobbyView.classList.add('view-active');
         } 
-        // Future: add 'gamepad', 'drawing_pad', etc.
     }
 };
 
-// --- Bootup ---
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
-    
     const roomInput = document.getElementById('room-input');
     const connectBtn = document.getElementById('connect-btn');
 
