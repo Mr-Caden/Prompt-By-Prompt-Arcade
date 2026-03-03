@@ -242,43 +242,6 @@ class CrossyGame extends ArcadeGame {
     }
 
     /**
-     * Handles mobile input from the Gamepad layout.
-     */
-    onInput(playerId, data) {
-        if (data.type === 'game_input' && data.action === 'dpad') {
-            const pData = this.playerBodies.get(playerId);
-            if (!pData) return;
-
-            let nextX = pData.body.position.x;
-            let nextY = pData.body.position.y;
-
-            if (data.dir === 'up') nextY -= this.laneSize;
-            if (data.dir === 'down') nextY += this.laneSize;
-            if (data.dir === 'left') nextX -= this.laneSize;
-            if (data.dir === 'right') nextX += this.laneSize;
-
-            // Stay within screen bounds
-            nextX = this.p.constrain(nextX, this.laneSize, this.p.width - this.laneSize);
-            nextY = this.p.constrain(nextY, this.laneSize / 2, this.p.height - (this.laneSize / 2));
-
-            // Update physics body position
-            Matter.Body.setPosition(pData.body, { x: nextX, y: nextY });
-
-            // Check Win Condition
-            if (nextY < this.laneSize) {
-                // Award points
-                pData.player.score += 10;
-                
-                // Reset player after a short delay (or instantly for now)
-                setTimeout(() => {
-                    const startY = (this.laneCount - 0.5) * this.laneSize;
-                    Matter.Body.setPosition(pData.body, { x: pData.body.position.x, y: startY });
-                }, 500);
-            }
-        }
-    }
-
-    /**
      * Defines which controller layout the phone should use.
      */
     getMobileUI() {
