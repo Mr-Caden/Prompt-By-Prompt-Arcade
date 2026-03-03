@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Prompt By Prompt Arcade - Host</title>
+    <title>Prompt By Prompt Arcade</title>
     
     <link rel="stylesheet" href="css/main.css">
     
-    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
@@ -15,14 +14,20 @@
 </head>
 <body>
 
+    <!-- Host Navigation Bar -->
+    <div id="host-top-bar">
+        <div class="host-nav-group">
+            <button class="nav-btn active" id="nav-select">Game Select</button>
+            <button class="nav-btn" id="nav-lobby">Customization Lobby</button>
+        </div>
+        <div id="room-code" class="room-code-display" style="font-size: 1.5rem;">----</div>
+    </div>
+
     <div id="host-container">
-        <!-- p5.js will attach its canvas inside this container -->
         <div id="game-canvas-container"></div>
         
-        <!-- Persistent UI Overlay -->
-        <div id="lobby-overlay">
+        <div id="lobby-overlay" class="lobby-hidden">
             <div id="qr-code"></div>
-            <div class="room-code-display" id="room-code">----</div>
             <div class="player-count" id="player-count-display">0 Player(s) Connected</div>
         </div>
     </div>
@@ -35,11 +40,10 @@
     
     <!-- Game Modules -->
     <script src="js/games/base.js"></script>
-    <script src="js/games/menu.js"></script>
+    <script src="js/games/select.js"></script>
+    <script src="js/games/lobby.js"></script>
     <script src="js/games/crossy.js"></script>
     
-    <!-- Boot -->
     <script src="js/host.js"></script>
 </body>
 </html>
-
