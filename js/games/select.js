@@ -97,9 +97,12 @@ class GameSelect extends ArcadeGame {
                 if (data.dir === 'down') currentIndex += cols;
                 if (data.dir === 'up') currentIndex -= cols;
 
-                // Clamp
-                if (currentIndex < 0) currentIndex = 0;
-                if (currentIndex >= this.games.length) currentIndex = this.games.length - 1;
+                currentIndex = this.p.constrain(currentIndex, 0, this.games.length - 1);
+                
+                // Play UI Tick!
+                if (this.playerSelections.get(playerId) !== currentIndex) {
+                    window.audio.playTick();
+                }
 
                 this.playerSelections.set(playerId, currentIndex);
             }
@@ -107,7 +110,7 @@ class GameSelect extends ArcadeGame {
             if (data.action === 'btn_a') {
                 const gameConfig = this.games[currentIndex];
                 if (gameConfig.class) {
-                    // Start the selected game!
+                    window.audio.playCoin(); // Play Start Sound!
                     window.engine.loadGame(gameConfig.class);
                 }
             }
