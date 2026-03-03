@@ -7,16 +7,14 @@
     
     <link rel="stylesheet" href="css/main.css">
     
-    <!-- External Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.2/peerjs.min.js"></script>
 </head>
 <body>
 
     <div id="controller-container">
         
-        <!-- Initial Connection Screen -->
         <div class="panel" id="connect-panel">
-            <h2 style="text-align: center; color: var(--text-color);">Join Arcade</h2>
+            <h2 style="text-align: center;">Join Arcade</h2>
             <div class="input-group">
                 <label for="room-input">Room Code</label>
                 <input type="text" id="room-input" placeholder="ABCD" maxlength="4" autocomplete="off" autocorrect="off" autocapitalize="characters" style="text-transform: uppercase;">
@@ -24,12 +22,10 @@
             <button class="btn" id="connect-btn">Join</button>
         </div>
 
-        <!-- Dynamic UI Container -->
         <div id="dynamic-ui" class="view-hidden" style="width: 100%; display: flex; justify-content: center;">
             
-            <!-- Lobby / Character Customization View -->
             <div class="panel view-hidden" id="view-lobby">
-                <h2 style="text-align: center; color: var(--text-color);">Customize</h2>
+                <h2 style="text-align: center;">Customize</h2>
                 
                 <div class="input-group">
                     <label for="player-name">Your Name</label>
@@ -37,28 +33,62 @@
                 </div>
 
                 <div class="input-group">
-                    <label>Choose Color</label>
-                    <div class="color-swatches">
-                        <!-- Mini Motorways Palette Mapping -->
-                        <div class="swatch selected" data-color="#4F86F7" style="background-color: #4F86F7;"></div>
-                        <div class="swatch" data-color="#EF767A" style="background-color: #EF767A;"></div>
-                        <div class="swatch" data-color="#F6C15B" style="background-color: #F6C15B;"></div>
-                        <div class="swatch" data-color="#45CB85" style="background-color: #45CB85;"></div>
-                        <div class="swatch" data-color="#9D4EDD" style="background-color: #9D4EDD;"></div>
-                        <div class="swatch" data-color="#2D3142" style="background-color: #2D3142;"></div>
-                    </div>
+                    <label>Color Hue</label>
+                    <input type="range" id="hue-slider" class="hue-slider" min="0" max="360" value="210">
+                </div>
+
+                <div class="input-group">
+                    <label>Face Style</label>
+                    <select id="face-style">
+                        <option value="classic">Classic</option>
+                        <option value="derpy">Derpy</option>
+                        <option value="anime">Anime</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Variant</label>
+                    <select id="face-variant">
+                        <option value="boy">Boy</option>
+                        <option value="girl">Girl</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Hat</label>
+                    <select id="hat-select">
+                        <option value="none">None</option>
+                        <option value="cap">Baseball Cap</option>
+                        <option value="topHat">Top Hat</option>
+                        <option value="crown">Crown</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Mask</label>
+                    <select id="mask-select">
+                        <option value="none">None</option>
+                        <option value="bandit">Bandit Mask</option>
+                        <option value="bandana">Bandana</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>Back</label>
+                    <select id="back-select">
+                        <option value="none">None</option>
+                        <option value="cape">Hero Cape</option>
+                        <option value="backpack">Backpack</option>
+                        <option value="wings">Fairy Wings</option>
+                    </select>
                 </div>
 
                 <button class="btn" id="ready-btn" style="margin-top: 16px;">READY UP</button>
             </div>
-
-            <!-- Future Views (Gamepad, etc.) will go here -->
-
         </div>
 
     </div>
 
-    <!-- Core Scripts -->
     <script src="js/core/network.js"></script>
     <script src="js/client.js"></script>
 </body>
