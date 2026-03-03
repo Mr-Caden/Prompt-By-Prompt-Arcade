@@ -1,12 +1,12 @@
 /**
  * Main Menu Screen
- * Visualizes connected players and handles transitioning into games or tournaments.
+ * Visualizes connected players using the CharLib Pipeline
  */
 
 class MainMenu extends ArcadeGame {
     constructor(p, matterEngine, players, onStartGame) {
         super(p, matterEngine, players);
-        this.onStartGame = onStartGame; // Callback to Engine to launch a game
+        this.onStartGame = onStartGame; 
     }
 
     setup() {
@@ -14,13 +14,11 @@ class MainMenu extends ArcadeGame {
     }
 
     update() {
-        // Menu logic (e.g., checking if all players are 'ready')
         const allPlayers = this.players.getAllPlayers();
         if (allPlayers.length > 0) {
             const allReady = allPlayers.every(player => player.isReady);
             if (allReady) {
-                // For now, if everyone readies up, we just visually acknowledge it.
-                // In the future, this will trigger the onStartGame callback to load the first real game.
+                // Future: trigger onStartGame()
             }
         }
     }
@@ -35,7 +33,6 @@ class MainMenu extends ArcadeGame {
         this.p.fill('#2D3142');
         this.p.text("PROMPT BY PROMPT ARCADE", this.p.width / 2, 100);
 
-        // Draw Connected Players
         const allPlayers = this.players.getAllPlayers();
         
         if (allPlayers.length === 0) {
@@ -52,37 +49,39 @@ class MainMenu extends ArcadeGame {
             const x = spacing * (index + 1);
             const y = this.p.height / 2;
 
-            // Player Avatar (Simple circle with their custom color)
+            // Simple Shadow
             this.p.noStroke();
-            this.p.fill(player.color);
-            this.p.circle(x, y, 80);
+            this.p.fill(0, 0, 0, 20); // semi-transparent black in RGB
+            this.p.ellipse(x, y + 60, 80, 20);
+
+            // Draw Full Player using Object-Oriented draw!
+            // If they are ready, they look 'happy'. If not, 'normal'.
+            const emotion = player.isReady ? 'happy' : 'normal';
+            player.draw(this.p, x, y, 1.2, emotion);
 
             if (player.isReady) {
                 this.p.stroke('#45CB85'); // Green stroke for ready
                 this.p.strokeWeight(6);
                 this.p.noFill();
-                this.p.circle(x, y, 90);
+                this.p.circle(x, y, 120); // Ring around the character
             }
 
             // Player Name
             this.p.noStroke();
             this.p.fill('#2D3142');
             this.p.textSize(20);
-            this.p.text(player.name, x, y + 70);
+            this.p.text(player.name, x, y + 90);
 
             // Status
             this.p.textSize(14);
             this.p.fill(player.isReady ? '#45CB85' : '#888');
-            this.p.text(player.isReady ? "READY" : "CUSTOMIZING", x, y + 95);
+            this.p.text(player.isReady ? "READY" : "CUSTOMIZING", x, y + 115);
         });
     }
 
-    onInput(playerId, data) {
-        // The Engine handles sys_player_update, we just listen if we need menu specific input
-    }
+    onInput(playerId, data) {}
 
     getMobileUI() {
-        // Tells the phone to show the Lobby Customization layout
         return { layout: 'lobby' };
     }
 }
