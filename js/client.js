@@ -1,6 +1,5 @@
 /**
  * Client Application Entry Point
- * Manages mobile controller state, dynamic UI rendering, and player customization.
  */
 
 const PREFIX = "PBP-";
@@ -25,13 +24,12 @@ const inputs = {
     back: document.getElementById('back-select')
 };
 
-// Initialize UI with random local state
+const readyBtn = document.getElementById('ready-btn');
+let isReady = false;
+
 inputs.name.value = localPlayer.name;
 inputs.hue.value = localPlayer.hue;
 
-/**
- * Attempts to connect the phone to the host screen.
- */
 function joinRoom(code) {
     const cleanCode = code.trim().toUpperCase();
     if (cleanCode.length !== 4) return alert("Room code must be 4 characters.");
@@ -40,13 +38,8 @@ function joinRoom(code) {
     network.onReady = () => network.connectToHost(`${PREFIX}${cleanCode}`);
 }
 
-/**
- * Syncs the local character state with the Host.
- */
 function updateLocalStateAndSend() {
     const currentHue = parseInt(inputs.hue.value);
-    
-    // Update CSS Variable for dynamic coloring on buttons
     document.documentElement.style.setProperty('--player-hue', currentHue);
     
     const payload = {
@@ -56,24 +49,37 @@ function updateLocalStateAndSend() {
         variant: inputs.variant.value,
         hat: inputs.hat.value,
         mask: inputs.mask.value,
-        back: inputs.back.value
+        back: inputs.back.value,
+        isReady: isReady // SYNC READY STATE
     };
     
     localPlayer.updateCustomization(payload);
     network.send({ type: 'sys_player_update', payload: payload });
 }
 
-// Bind all customization inputs to sync state
 Object.values(inputs).forEach((el) => {
-    el.addEventListener('change', updateLocalStateAndSend);
+    el.addEventListener('change', () => { if(!isReady) updateLocalStateAndSend() });
     if (el === inputs.hue || el === inputs.name) {
-        el.addEventListener('input', updateLocalStateAndSend);
+        el.addEventListener('input', () => { if(!isReady) updateLocalStateAndSend() });
     }
 });
 
-/**
- * Bind Gamepad Buttons for Gameplay and Menu selection.
- */
+readyBtn.addEventListener('click', () => {
+    isReady = !isReady;
+    
+    Object.values(inputs).forEach(i => i.disabled = isReady);
+    
+    if (isReady) {
+        readyBtn.classList.add('btn-ready');
+        readyBtn.innerText = "READY! WATCH SCREEN";
+    } else {
+        readyBtn.classList.remove('btn-ready');
+        readyBtn.innerText = "READY UP";
+    }
+    
+    updateLocalStateAndSend();
+});
+
 document.querySelectorAll('.d-btn, .action-btn').forEach((btn) => {
     btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
@@ -84,8 +90,6 @@ document.querySelectorAll('.d-btn, .action-btn').forEach((btn) => {
         });
     });
 });
-
-// --- Network Event Bindings ---
 
 network.onConnect = () => {
     connectPanel.classList.add('view-hidden');
@@ -103,12 +107,16 @@ network.onDisconnect = () => {
 network.onData = (hostId, data) => {
     if (data.type === 'sys_ui') {
         const layout = data.layout;
-        
-        // Reset view states
         lobbyView.classList.add('view-hidden');
         gamepadView.classList.add('view-hidden');
         
+        // Host controls screen switching, reset local ready state
         if (layout === 'lobby') {
+            isReady = false;
+            readyBtn.classList.remove('btn-ready');
+            readyBtn.innerText = "READY UP";
+            Object.values(inputs).forEach(i => i.disabled = false);
+            
             lobbyView.classList.remove('view-hidden');
             lobbyView.classList.add('view-active');
         } else if (layout === 'gamepad') {
@@ -116,32 +124,24 @@ network.onData = (hostId, data) => {
             gamepadView.classList.add('view-active');
         }
     } 
-    // Handle haptic feedback requests from host
     else if (data.type === 'sys_haptic') {
-        if ('vibrate' in navigator) {
-            navigator.vibrate(data.pattern);
-        }
+        if ('vibrate' in navigator) navigator.vibrate(data.pattern);
     }
 };
 
 window.onload = () => {
-    // Initial color set for CSS variables
     document.documentElement.style.setProperty('--player-hue', localPlayer.hue);
-    
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
     if (roomParam) {
         document.getElementById('room-input').value = roomParam.toUpperCase();
         joinRoom(roomParam);
     }
-    
     document.getElementById('connect-btn').addEventListener('click', () => {
         joinRoom(document.getElementById('room-input').value);
     });
 };
 
-// --- Preview Canvas Instance ---
-// This draws the player on their own phone screen for customization.
 new p5((p) => {
     p.setup = () => {
         const container = document.getElementById('preview-canvas-container');
@@ -149,22 +149,14 @@ new p5((p) => {
         let canvas = p.createCanvas(container.clientWidth, container.clientHeight);
         canvas.parent(container);
     };
-
     p.draw = () => {
         p.background('#F4F3EF');
-        p.noStroke(); 
-        p.fill(0, 0, 0, 20);
-        // Floor shadow
+        p.noStroke(); p.fill(0, 0, 0, 20);
         p.ellipse(p.width/2, p.height/2 + 50, 80, 20);
-        
-        // Draw the character using the shared CharLib
-        localPlayer.draw(p, p.width/2, p.height/2, 1.2, 'normal');
+        localPlayer.draw(p, p.width/2, p.height/2, 1.2, isReady ? 'happy' : 'normal');
     };
-
     p.windowResized = () => {
         const container = document.getElementById('preview-canvas-container');
-        if (container && container.clientWidth > 0) {
-            p.resizeCanvas(container.clientWidth, container.clientHeight);
-        }
+        if (container && container.clientWidth > 0) p.resizeCanvas(container.clientWidth, container.clientHeight);
     };
 });
