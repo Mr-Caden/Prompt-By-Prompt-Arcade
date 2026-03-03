@@ -1,116 +1,115 @@
 /**
  * Client Application Entry Point
- * Manages mobile controller state, dynamic UI rendering, and player customization.
  */
 
 const PREFIX = "PBP-";
 const network = new NetworkManager(false);
 
-// UI Containers
+// We create a local instance of the Player class to power the preview canvas
+const localPlayer = new Player('local');
+localPlayer.name = "Player " + Math.floor(1000 + Math.random() * 9000);
+localPlayer.hue = Math.floor(Math.random() * 360);
+
+// UI Elements
 const connectPanel = document.getElementById('connect-panel');
 const dynamicUi = document.getElementById('dynamic-ui');
-
-// Lobby Specific Elements
 const lobbyView = document.getElementById('view-lobby');
-const nameInput = document.getElementById('player-name');
-const hueSlider = document.getElementById('hue-slider');
-const faceSelect = document.getElementById('face-style');
-const variantSelect = document.getElementById('face-variant');
-const hatSelect = document.getElementById('hat-select');
-const maskSelect = document.getElementById('mask-select');
-const backSelect = document.getElementById('back-select');
-const readyBtn = document.getElementById('ready-btn');
+const crossyView = document.getElementById('view-crossy');
 
+const inputs = {
+    name: document.getElementById('player-name'),
+    hue: document.getElementById('hue-slider'),
+    faceStyle: document.getElementById('face-style'),
+    variant: document.getElementById('face-variant'),
+    hat: document.getElementById('hat-select'),
+    mask: document.getElementById('mask-select'),
+    back: document.getElementById('back-select')
+};
+const readyBtn = document.getElementById('ready-btn');
 let isReady = false;
+
+// Initialize inputs
+inputs.name.value = localPlayer.name;
+inputs.hue.value = localPlayer.hue;
 
 function joinRoom(code) {
     const cleanCode = code.trim().toUpperCase();
-    if (cleanCode.length !== 4) {
-        alert("Room code must be 4 characters.");
-        return;
-    }
-
-    const connectBtn = document.getElementById('connect-btn');
-    connectBtn.disabled = true;
-    connectBtn.innerText = "Connecting...";
+    if (cleanCode.length !== 4) return alert("Room code must be 4 characters.");
     
+    document.getElementById('connect-btn').innerText = "Connecting...";
     network.initialize();
     network.onReady = () => network.connectToHost(`${PREFIX}${cleanCode}`);
 }
 
-function sendPlayerUpdate() {
-    network.send({
-        type: 'sys_player_update',
-        payload: {
-            name: nameInput.value || "Player",
-            hue: parseInt(hueSlider.value),
-            faceStyle: faceSelect.value,
-            variant: variantSelect.value,
-            hat: hatSelect.value,
-            mask: maskSelect.value,
-            back: backSelect.value,
-            isReady: isReady
-        }
-    });
+function updateLocalStateAndSend() {
+    const payload = {
+        name: inputs.name.value || "Player",
+        hue: parseInt(inputs.hue.value),
+        faceStyle: inputs.faceStyle.value,
+        variant: inputs.variant.value,
+        hat: inputs.hat.value,
+        mask: inputs.mask.value,
+        back: inputs.back.value,
+        isReady: isReady
+    };
+    
+    // Update local preview
+    localPlayer.updateCustomization(payload);
+    
+    // Send to host
+    network.send({ type: 'sys_player_update', payload: payload });
 }
 
-// Bind Customization Inputs[hueSlider, faceSelect, variantSelect, hatSelect, maskSelect, backSelect].forEach(el => {
-    el.addEventListener('change', () => {
-        if (!isReady) sendPlayerUpdate();
-    });
-    // For slider smooth updating
-    if (el === hueSlider) {
-        el.addEventListener('input', () => {
-            if (!isReady) sendPlayerUpdate();
-        });
+// Bind all UI inputs safely!
+Object.values(inputs).forEach(el => {
+    el.addEventListener('change', () => { if (!isReady) updateLocalStateAndSend(); });
+    if (el === inputs.hue || el === inputs.name) {
+        el.addEventListener('input', () => { if (!isReady) updateLocalStateAndSend(); });
     }
-});
-
-nameInput.addEventListener('input', () => {
-    if (!isReady) sendPlayerUpdate();
 });
 
 readyBtn.addEventListener('click', () => {
     isReady = !isReady;
-    
-    const inputs =[nameInput, hueSlider, faceSelect, variantSelect, hatSelect, maskSelect, backSelect];
+    Object.values(inputs).forEach(i => i.disabled = isReady);
     
     if (isReady) {
         readyBtn.classList.add('btn-ready');
-        readyBtn.innerText = "WAITING FOR OTHERS...";
-        inputs.forEach(i => i.disabled = true);
+        readyBtn.innerText = "WAITING...";
     } else {
         readyBtn.classList.remove('btn-ready');
         readyBtn.innerText = "READY UP";
-        inputs.forEach(i => i.disabled = false);
     }
-    
-    sendPlayerUpdate();
+    updateLocalStateAndSend();
+});
+
+// Bind D-Pad Buttons
+document.querySelectorAll('.d-btn').forEach(btn => {
+    // Use touchstart/mousedown for instant arcade response
+    btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        network.send({ 
+            type: 'game_input', 
+            action: btn.dataset.action, 
+            dir: btn.dataset.dir 
+        });
+    });
 });
 
 // Network Bindings
-network.onConnect = (hostId) => {
+network.onConnect = () => {
     connectPanel.classList.add('view-hidden');
     dynamicUi.classList.remove('view-hidden');
-    
-    nameInput.value = "Player " + Math.floor(1000 + Math.random() * 9000);
-    // Randomize initial look
-    hueSlider.value = Math.floor(Math.random() * 360);
-    sendPlayerUpdate();
+    updateLocalStateAndSend();
 };
 
 network.onDisconnect = () => {
     dynamicUi.classList.add('view-hidden');
     connectPanel.classList.remove('view-hidden');
-    
-    const connectBtn = document.getElementById('connect-btn');
-    connectBtn.disabled = false;
-    connectBtn.innerText = "Join Arcade";
-    
+    document.getElementById('connect-btn').innerText = "Connect";
     isReady = false;
     readyBtn.classList.remove('btn-ready');
-    readyBtn.innerText = "READY UP";[nameInput, hueSlider, faceSelect, variantSelect, hatSelect, maskSelect, backSelect].forEach(i => i.disabled = false);
-    
+    readyBtn.innerText = "READY UP";
+    Object.values(inputs).forEach(i => i.disabled = false);
     alert("Disconnected from Host.");
 };
 
@@ -118,26 +117,49 @@ network.onData = (hostId, data) => {
     if (data.type === 'sys_ui') {
         const layout = data.layout;
         lobbyView.classList.add('view-hidden');
+        crossyView.classList.add('view-hidden');
+        
         if (layout === 'lobby') {
             lobbyView.classList.remove('view-hidden');
             lobbyView.classList.add('view-active');
-        } 
+        } else if (layout === 'crossy_pad') {
+            crossyView.classList.remove('view-hidden');
+            crossyView.classList.add('view-active');
+        }
     }
 };
 
 window.onload = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
-    const roomInput = document.getElementById('room-input');
-    const connectBtn = document.getElementById('connect-btn');
-
     if (roomParam) {
-        roomInput.value = roomParam.toUpperCase();
+        document.getElementById('room-input').value = roomParam.toUpperCase();
         joinRoom(roomParam);
     }
-
-    connectBtn.addEventListener('click', () => joinRoom(roomInput.value));
-    roomInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') joinRoom(roomInput.value);
-    });
+    document.getElementById('connect-btn').addEventListener('click', () => joinRoom(document.getElementById('room-input').value));
 };
+
+// --- Local P5 Preview Engine ---
+new p5((p) => {
+    p.setup = () => {
+        const container = document.getElementById('preview-canvas-container');
+        let canvas = p.createCanvas(container.clientWidth, container.clientHeight);
+        canvas.parent(container);
+    };
+
+    p.draw = () => {
+        p.background('#F4F3EF');
+        
+        // Draw floor shadow
+        p.noStroke(); p.fill(0, 0, 0, 20);
+        p.ellipse(p.width/2, p.height/2 + 50, 80, 20);
+
+        // Draw Player matching local state
+        localPlayer.draw(p, p.width/2, p.height/2, 1.2, isReady ? 'happy' : 'normal');
+    };
+
+    p.windowResized = () => {
+        const container = document.getElementById('preview-canvas-container');
+        if (container.clientWidth > 0) p.resizeCanvas(container.clientWidth, container.clientHeight);
+    };
+});
