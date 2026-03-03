@@ -17,8 +17,9 @@ function generateRoomCode() {
 }
 
 function updateLobbyUI() {
-    const countDisplay = document.getElementById('player-count-display');
-    countDisplay.innerText = `${players.getAllPlayers().length} Player(s) Connected`;
+    // Only count active (non-ghost) players for the UI display
+    const activeCount = players.getAllPlayers().filter(p => !p.isGhost).length;
+    document.getElementById('player-count-display').innerText = `${activeCount} Player(s) Connected`;
 }
 
 network.onReady = (id) => {
@@ -39,29 +40,51 @@ network.onReady = (id) => {
     });
 };
 
-network.onConnect = (clientId) => {
-    const p = players.addPlayer(clientId);
-    updateLobbyUI();
-    if (window.engine) window.engine.notifyPlayerJoined(p);
+/**
+ * NEW: Handle Identity Handshake
+ * This is the FIRST thing that happens when a client connects.
+ */
+network.onHandshake = (peerId, uuid) => {
+    // PlayerManager handles logic of creating new vs recovering ghost
+    const player = players.handleHandshake(peerId, uuid);
     
+    updateLobbyUI();
+
+    // If the game engine is running, tell it about the player
+    // Note: If they were a ghost, the engine might already have their body, 
+    // so the engine needs to be smart about 'onPlayerJoin'
+    if (window.engine) window.engine.notifyPlayerJoined(player);
+    
+    // Immediately send them the UI for the current game
     if (window.engine && window.engine.activeGame) {
         const uiConfig = window.engine.activeGame.getMobileUI();
-        network.send({ type: 'sys_ui', layout: uiConfig.layout }, clientId);
+        network.send({ type: 'sys_ui', layout: uiConfig.layout }, peerId);
     }
 };
 
-network.onDisconnect = (clientId) => {
-    players.removePlayer(clientId);
-    updateLobbyUI();
-    if (window.engine) window.engine.notifyPlayerLeft(clientId);
-};
+network.onData = (peerId, data) => {
+    // 1. Heartbeat
+    if (data.type === 'sys_ping') {
+        players.heartbeat(peerId);
+        return;
+    }
 
-network.onData = (clientId, data) => {
+    // 2. Customization
     if (data.type === 'sys_player_update') {
-        players.updatePlayer(clientId, data.payload);
+        players.updatePlayer(peerId, data.payload);
         return; 
     }
-    if (window.engine) window.engine.handleInput(clientId, data);
+
+    // 3. Gameplay Inputs
+    // Only allow input if player is not a ghost
+    const p = players.getPlayerByPeer(peerId);
+    if (p && !p.isGhost && window.engine) {
+        // We pass the UUID or Player Object to the engine now, but keeping peerId 
+        // for compatibility with existing game logic (games map by peerId/uuid).
+        // Actually, let's pass the UUID to the engine to be robust.
+        // For now, to minimize game-code rewriting, we map Player Object via PeerID.
+        window.engine.handleInput(p.uuid, data); // Passing UUID as 'playerId'
+    }
 };
 
 window.onload = () => {
@@ -69,17 +92,16 @@ window.onload = () => {
     network.initialize(`${PREFIX}${state.roomCode}`);
     
     window.engine = new ArcadeEngine('game-canvas-container', network, players);
-    
-    // Register the actual playable games for the Random selector
     window.engine.registerGames([CrossyGame, SumoGame]);
-    
     window.engine.start();
     
     document.body.addEventListener('click', () => {
         if (window.audio) window.audio.init();
     }, { once: true });
     
-    // Start directly in the Lobby. Players drive the flow now!
     document.getElementById('lobby-overlay').classList.remove('lobby-hidden');
     window.engine.loadGame(LobbyRoom);
+    
+    // Frequent UI update to reflect ghost statuses
+    setInterval(updateLobbyUI, 2000);
 };
